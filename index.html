@@ -131,6 +131,7 @@ select{max-width:100%}
 /* iPad・タッチ端末：入力時に画面が勝手に拡大されないよう16px以上にし、押しやすくする */
 @media (pointer:coarse){input,select,textarea{font-size:16px}.btn{min-height:40px}nav a{min-height:46px}}
 @supports (height:100dvh){.wrap{min-height:calc(100dvh - 52px)}nav{height:calc(100dvh - 52px)}}
+.doc{border:1px solid var(--line);border-radius:4px;padding:10px 12px;margin-bottom:10px;background:#fff}.doc .dt{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:16px;margin-bottom:6px}.doc .dd{font-size:14px;line-height:1.6;margin:3px 0}.doc .dl{display:inline-block;min-width:68px;font-size:12px;color:var(--sub);background:var(--label);border-radius:3px;padding:0 6px;margin-right:8px;text-align:center}
 table.tasks td{vertical-align:top}
 table.tasks input.w{min-width:0}
 table.tasks input.tname{font-weight:700;min-width:320px}
@@ -492,6 +493,7 @@ function ym(m){
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}`;
 }
 const ICON = {
+  doc:'<path d="M6 2h9l5 5v15H6z M14 2v6h6 M9 13h8 M9 17h8" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   home:'<path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
   chart:'<path d="M4 20V10m6 10V4m6 16v-7m4 7H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
@@ -504,6 +506,7 @@ const PAGES = [
   {id:"home", grp:"お母様向け", name:"ひと目でわかる収支", icon:"home"},
   {id:"start", grp:"お母様向け", name:"開設に必要なお金", icon:"yen"},
   {id:"tasks", grp:"開設準備", name:"やることリスト", icon:"check"},
+  {id:"docs", grp:"開設準備", name:"必要書類", icon:"doc"},
   {id:"monthly", grp:"詳しく見る", name:"36か月の見込み", icon:"chart"},
   {id:"detail", grp:"詳しく見る", name:"1か月の内訳", icon:"list"},
   {id:"settings", grp:"管理", name:"設定", icon:"gear"},
@@ -528,7 +531,7 @@ function render(){
   renderNav();
   const el = document.getElementById("main");
   const sy = window.scrollY;
-  el.innerHTML = ({home:pHome, start:pStart, monthly:pMonthly, detail:pDetail, settings:pSettings, master:pMaster, tasks:pTasks})[page]();
+  el.innerHTML = ({home:pHome, start:pStart, monthly:pMonthly, detail:pDetail, settings:pSettings, master:pMaster, tasks:pTasks, docs:pDocs})[page]();
   if (page==="settings") updateDerived();
   window.scrollTo(0, sy);
 }
@@ -1236,6 +1239,73 @@ document.addEventListener("change", e=>{
 });
 window.addEventListener("hashchange", ()=>{ const p = location.hash.slice(1); if (p!==page){ page = p; render(); } });
 render();
+/* ===== 指定申請の必要書類（泉佐野市 広域福祉課・2026-10-23調査） ===== */
+// [段階, 書類名, 用意する人, 何を書く・用意する, 記載のポイント, 出典区分(市/府/要確認)]
+const DOC_STAGES = [
+  {name:"① 事前協議（市と事前に相談）", when:-3, rule:"開設3か月前の月の末日まで", memo:"管理者（母）とサービス管理責任者（母）が必ず市役所へ行きます。電話予約が必要です。"},
+  {name:"② 本申請（申請書類を出す）", when:-1, rule:"申請予約：開設2か月前の月の末日まで／提出：開設前月の10日ごろまで", memo:"郵送は不可。予約した日に持参します。正本と副本の2部をつくり、副本は手元に保管します。"},
+  {name:"③ 指定のあと", when:1, rule:"事業を始めてから", memo:"指定は毎月1日付。指定通知書が届いた日から事業を始められます。"},
+];
+const DOCS = [
+  [0,"事前協議書","母","事業のあらまし（どんな事業所を、どこで、何人で始めるか）","市の共通様式。書く項目の細かい中身は市に確認","要確認"],
+  [0,"収支予算書・工賃支払予定表・積算根拠","母","1年間の収入と支出の見込み、利用者に払う工賃の見込み、その計算の元","このシミュレーターの数字がそのまま使える。作業の単価・量の根拠が大事","市"],
+  [0,"作業の請負・委託契約書のひな形","母","受託作業A・Bの仕事を受ける契約書のひな形","仕事を外から受ける場合に付ける。単価の根拠を書面で残す","市"],
+  [0,"事業内容確認書","母","事業の目的、法人の理念、職員体制、研修計画、地域とのつながり","大阪府では必須。泉佐野市でも必要かは要確認","府"],
+  [0,"生産活動の内容と収支のシート","母","どんな作業で、いくら売上があり、いくら工賃に回すか","大阪府では必須。市で必要かは要確認","府"],
+  [0,"管理者・サービス管理責任者の経歴書と証明書","母","職歴、研修の修了証、実務経験証明書","実務経験証明書は以前の勤務先に書いてもらう。時間がかかるので早めに依頼","市"],
+  [0,"勤務形態一覧表・組織図","母・父","誰が何曜日に何時間働くか、だれが責任者か","職業指導員と生活支援員の合計が、常勤換算で「利用者数÷10」以上になるように","市"],
+  [0,"平面図","専門家・業者に頼む","作業室・相談室・トイレ・洗面所・多目的室の配置と広さ","作業室は1人あたり約3㎡が目安（20名で約60㎡）。相談室は話が外に漏れない仕切り","府"],
+  [0,"物件の賃貸借契約書・建物の登記簿","役所・大家から取る","借りる物件の契約書の写し、法務局で取る建物の登記簿","大家さんが障害福祉の事業所として使うことを認めているか確認","府"],
+  [1,"指定申請書・付表（就労継続支援）","母","法人名、事業所名、住所、定員20名、営業日・時間など","事業所ごとに1枚。定員は運営規程と同じ数にする","市"],
+  [1,"添付書類一覧（A型・B型用）","母","出す書類のチェックリスト","市の公式リスト。これに沿ってすべてそろえる（中身は要確認）","要確認"],
+  [1,"申請書等添付調書","母","添付した書類のチェック表","","市"],
+  [1,"運営規程","母","事業の目的、職員の人数と仕事、営業日・時間、定員20名、利用料、実施地域（熊取町など）、苦情・虐待防止の決まり","市のひな形を使う。古い例文は使わない（令和6年度に改正）","市"],
+  [1,"苦情解決のしくみ（参考資料2）","母","苦情の受付担当、責任者、第三者委員、対応の手順","受付担当と責任者は別の人にするのが一般的（要確認）","市"],
+  [1,"誓約書（参考資料3）","母","法律で決められた「指定を受けられない人」に当たらないという約束","代表者が署名・押印。役員全員が対象","市"],
+  [1,"勤務形態一覧表・常勤換算シート（参考資料4）","母・父","全職員の1か月の勤務予定と、常勤に直した人数","常勤換算（＝パートの時間を常勤何人分かに直す計算）。新規は利用者数を定員の9割（18名）で計算","市"],
+  [1,"平均利用者数・人員の計算表","母","見込みの利用者数と、必要な職員数","18名÷10＝1.8人以上の職員が必要","市"],
+  [1,"主たる対象者を決める理由（参考資料1）","母","障害の種類で受け入れを限定する場合の理由","限定しないなら不要","市"],
+  [1,"履歴事項全部証明書（法人の登記簿）","役所・大家から取る","法人の目的・役員などが書かれた登記簿の写し（法務局で取る）","目的に「障害者総合支援法に基づく障害福祉サービス事業」と書かれている必要あり。直すなら司法書士に頼み、申請までに終える","市"],
+  [1,"定款の写し","母","法人のきまり","目的の変更は申請までに終えておく。提出が必要かは添付書類一覧で確認","要確認"],
+  [1,"基本報酬の区分の届出書（B型）","母","どの報酬区分で請求するか","新規の1年目は「平均工賃1万円未満」とみなして計算（大阪府の手引き）","市"],
+  [1,"体制等状況一覧表・加算の届出書","母","取りたい加算（処遇改善加算など）","加算ごとに別の書類が必要。15日までに出すと翌月から","市"],
+  [1,"開始届","母","事業を始めることの届出","指定申請とは別に出す","市"],
+  [2,"情報公表システムの登録依頼書","母","事業所の基本情報","指定のあと、市へメールで出す","市"],
+  [2,"職員の雇用契約書（労働条件通知書）の写し","母","管理者・サービス管理責任者・職員との契約","事業開始後に出す","市"],
+  [2,"社会保険・労働保険の加入がわかる書類","専門家・業者に頼む","保険に入ったことがわかる書類の写し","事業開始後1か月以内。社労士に頼むと確実","市"],
+  [2,"業務管理体制の届出","母","法律を守るための責任者など","泉佐野市ではなく大阪府へ出す","市"],
+];
+const DOC_CHECK = [
+  "令和9年度（2027年4月以降の開設）の締切日（まだ公表されていない）",
+  "事前協議に持っていく書類の正確な一覧（大阪府の書類も必要か）",
+  "添付書類一覧（Excel）の中身：定款・写真・建築や消防の書類・協力医療機関などが要るか",
+  "熊取町の障害福祉の担当課にも事前に相談が必要か",
+  "物件：用途変更（建築確認）が要るか、消防署への事前相談",
+];
+function pDocs(){
+  const whoTag = w => `<span class="tag ${w==="母"?"ok":""}">${esc(w)}</span>`;
+  const src = s => s==="市" ? `<span class="tag">泉佐野市HPで確認</span>` : s==="府" ? `<span class="tag" style="background:#fff4e5;color:#7a4a08">大阪府の情報（市でも要るか要確認）</span>` : `<span class="tag ng">要確認</span>`;
+  const body = DOC_STAGES.map((st,si)=>{
+    const rows = DOCS.filter(d=>d[0]===si);
+    return `<div class="card"><h2>${st.name}　<span style="font-weight:400;font-size:14px">${st.rule}（${whenLabel(st.when)}）</span></h2><div class="body">
+      <div class="note" style="margin-bottom:10px">${st.memo}</div>
+      ${rows.map(d=>`<div class="doc">
+        <div class="dt"><b>${esc(d[1])}</b>${whoTag(d[2])}</div>
+        <div class="dd"><span class="dl">書くこと</span>${esc(d[3])}</div>
+        ${d[4]?`<div class="dd"><span class="dl">ポイント</span>${esc(d[4])}</div>`:""}
+        <div class="dd">${src(d[5])}</div></div>`).join("")}
+    </div></div>`;
+  }).join("");
+  return `
+  <div class="crumb">開設準備 ＞ 必要書類</div>
+  <h1>指定申請に必要な書類（就労継続支援B型）</h1>
+  <div class="warn">出す先は <b>泉佐野市 広域福祉課</b>（泉佐野市役所 本庁4階）。熊取町の事業所もここが担当です。<br>
+  電話 072-493-2023（平日9〜17時）。<b>行く前に必ず電話で予約</b>します。</div>
+  <div class="note" style="margin-bottom:14px">2026年10月23日に泉佐野市HP・手引きを調べた内容です。様式（Excel・Word）は市HPの「指定障害福祉サービス事業者の新規申請等について」ページからダウンロードできます。担当の色：<span class="tag ok">母</span> はお母様が中心に作るもの。</div>
+  ${body}
+  <div class="card"><h2>市に電話で確認すること</h2><div class="body"><ul class="note" style="margin:0;padding-left:20px">${DOC_CHECK.map(c=>`<li>${c}</li>`).join("")}</ul></div></div>`;
+}
+
 </script>
 </body>
 </html>
