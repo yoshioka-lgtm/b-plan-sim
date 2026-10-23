@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="B型シミュレーター">
+<meta name="format-detection" content="telephone=no">
+<title>就労B型 収支シミュレーター</title>
+<style>
+:root{
+  --head:#1f5f7a; --head2:#17495e; --side:#eef3f6; --line:#cfdbe2; --label:#eaf0f4;
+  --text:#22313a; --sub:#5d6f7a; --blue:#1f6fb2; --green:#1d8a4e; --red:#c8372d; --orange:#e07b12;
+  --bg:#f6f8fa; --card:#fff; --input:#fffbe6;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;color:var(--text);background:var(--bg);font-size:15px}
+header{background:var(--head);color:#fff;display:flex;align-items:center;gap:16px;padding:0 18px;height:52px;position:sticky;top:0;z-index:5;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+header .logo{font-weight:700;font-size:17px;letter-spacing:.05em}
+header .info{display:flex;gap:8px;margin-left:auto;font-size:13px}
+header .info span{background:var(--head2);padding:4px 10px;border-radius:3px}
+.wrap{display:flex;min-height:calc(100vh - 52px)}
+nav{width:210px;background:var(--side);border-right:1px solid var(--line);padding:12px 0;flex-shrink:0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+nav .grp{font-size:12px;color:var(--sub);padding:12px 18px 4px}
+nav a{display:flex;align-items:center;gap:10px;padding:11px 18px;color:var(--text);text-decoration:none;border-left:4px solid transparent;cursor:pointer}
+nav a:hover{background:#e1eaf0}
+nav a.on{background:#fff;border-left-color:var(--head);font-weight:700;color:var(--head)}
+nav svg{width:18px;height:18px;flex-shrink:0}
+main{flex:1;padding:20px 24px 60px;min-width:0}
+.crumb{font-size:12px;color:var(--sub);margin-bottom:4px}
+h1{font-size:21px;margin:0 0 16px;padding-bottom:8px;border-bottom:3px solid var(--head)}
+h2{font-size:16px;margin:0;padding:9px 14px;background:var(--label);border-bottom:1px solid var(--line);border-left:5px solid var(--head)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;margin-bottom:18px;overflow:hidden}
+.card .body{padding:14px 16px}
+.note{font-size:13px;color:var(--sub);line-height:1.6}
+.warn{background:#fff4e5;border:1px solid #f3c48a;color:#7a4a08;padding:10px 14px;border-radius:4px;font-size:14px;margin-bottom:14px;line-height:1.6}
+/* ホーム */
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:stretch}
+.box{border:2px solid var(--line);border-radius:6px;padding:14px 16px;background:#fff}
+.box .ttl{font-size:15px;font-weight:700;color:var(--sub)}
+.box .big{font-size:34px;font-weight:800;margin:6px 0 8px;letter-spacing:.01em}
+.box .big small{font-size:16px;font-weight:700;margin-left:2px}
+.box ul{margin:0;padding:0;list-style:none;font-size:14px}
+.box li{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #dde5ea}
+.box li b{white-space:nowrap}
+@media (max-width:1100px){.flow{grid-template-columns:1fr}.op{justify-content:center;font-size:22px}}
+.op{display:flex;align-items:center;font-size:30px;font-weight:800;color:var(--sub)}
+.box.out{border-color:#e6b3ae}.box.out .big{color:var(--red)}
+.box.in{border-color:#a9c9e6}.box.in .big{color:var(--blue)}
+.box.res.plus{border-color:#9fd3b4;background:#f1faf4}.box.res.plus .big{color:var(--green)}
+.box.res.minus{border-color:#e6b3ae;background:#fdf3f2}.box.res.minus .big{color:var(--red)}
+.ctrl{display:flex;flex-wrap:wrap;gap:22px;align-items:center;margin-bottom:6px}
+.ctrl label{font-weight:700}
+.slider{display:flex;align-items:center;gap:12px}
+.slider input{width:260px}
+.slider .v{font-size:26px;font-weight:800;color:var(--head);min-width:70px}
+.seg{display:inline-flex;border:1px solid var(--head);border-radius:4px;overflow:hidden}
+.seg button{border:0;background:#fff;color:var(--head);padding:7px 14px;font-size:14px;cursor:pointer;font-family:inherit}
+.seg button+button{border-left:1px solid var(--head)}
+.seg button.on{background:var(--head);color:#fff;font-weight:700}
+.need{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.need .num{font-size:30px;font-weight:800;color:var(--orange)}
+.gauge{position:relative;height:26px;background:#eef2f5;border-radius:13px;margin:14px 0 4px;overflow:hidden}
+.gauge .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#7fb3d9,#1f6fb2);border-radius:13px}
+.gauge .mark{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--orange)}
+.gl{display:flex;justify-content:space-between;font-size:12px;color:var(--sub)}
+table.opt{width:100%;border-collapse:collapse}
+table.opt td{padding:10px 10px;border-bottom:1px solid #e3eaee;vertical-align:middle}
+table.opt td:first-child{font-weight:700;width:34%}
+table.opt .eff{text-align:right;font-weight:700;white-space:nowrap;width:150px}
+.eff.p{color:var(--green)}.eff.z{color:var(--sub);font-weight:400}
+.money{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.money div{background:#f7fafc;border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+.money b{display:block;font-size:22px;margin-top:4px}
+/* 汎用 */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-top:4px solid var(--head);border-radius:4px;padding:10px 14px}
+.kpi .t{font-size:13px;color:var(--sub)}.kpi .v{font-size:22px;font-weight:800;margin-top:4px}
+.neg{color:var(--red)}.pos{color:var(--green)}
+.scroll{overflow-x:auto}
+table.grid{border-collapse:collapse;font-size:13px;white-space:nowrap}
+table.grid th,table.grid td{border:1px solid var(--line);padding:5px 8px}
+table.grid th{background:var(--label);font-weight:700}
+table.grid td.n{text-align:right;font-variant-numeric:tabular-nums}
+table.grid tr.sec td{background:#f1f5f8;font-weight:700;color:var(--head)}
+table.grid tr.b td{font-weight:700}
+table.grid .stick{position:sticky;left:0;background:#fff;z-index:1;text-align:left}
+table.grid th.stick{background:var(--label)}
+table.grid tr.sec td.stick{background:#f1f5f8}
+table.form{width:100%;border-collapse:collapse}
+table.form th,table.form td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:middle}
+table.form th{background:var(--label);width:30%;font-weight:700;font-size:14px}
+table.form td .note{margin-top:3px}
+table.list{width:100%;border-collapse:collapse;font-size:14px}
+table.list th,table.list td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle}
+table.list th{background:var(--label);font-size:13px}
+table.list td.n{text-align:right}
+input,select{font-family:inherit;font-size:14px;padding:5px 7px;border:1px solid #b7c6cf;border-radius:3px;background:var(--input)}
+input[type=number]{width:110px;text-align:right}
+input.w{width:100%}
+input.s{width:72px}
+table.list input.w{min-width:240px}
+table.list input[type=number]{width:96px}
+table.list input.s{width:64px}
+select{max-width:100%}
+.unit{margin-left:6px;color:var(--sub);font-size:13px}
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--head);margin-bottom:16px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);border-bottom:0;background:#e8eef2;padding:9px 16px;cursor:pointer;font-size:14px;border-radius:4px 4px 0 0;font-family:inherit;color:var(--text)}
+.tabs button.on{background:var(--head);color:#fff;border-color:var(--head);font-weight:700}
+.btn{border:1px solid var(--blue);background:var(--blue);color:#fff;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:14px;font-family:inherit}
+.btn.sub{background:#fff;color:var(--blue)}
+.btn.del{background:#fff;color:var(--red);border-color:#e0a8a3;padding:3px 9px;font-size:13px}
+.bar{position:sticky;top:52px;z-index:4;background:#fff;border:1px solid var(--line);border-radius:4px;padding:8px 14px;margin-bottom:14px;display:flex;gap:22px;flex-wrap:wrap;font-size:14px;box-shadow:0 2px 4px rgba(0,0,0,.05)}
+.bar b{font-size:16px;margin-left:4px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chart{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--sub);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;margin-right:4px;vertical-align:-1px}
+.tag{display:inline-block;font-size:12px;padding:1px 7px;border-radius:10px;background:#e8eef2;color:var(--sub)}
+.tag.ok{background:#e3f4ea;color:var(--green)}.tag.ng{background:#fbe5e3;color:var(--red)}
+@media (max-width:900px){
+  header .logo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  header .info span:not(.keep){display:none}
+  nav{width:178px}nav a{padding:12px 10px;gap:8px;font-size:14px;white-space:nowrap}nav .grp{padding:10px 12px 4px}
+  .flow{grid-template-columns:1fr}.op{justify-content:center;font-size:22px}
+  .kpis,.money{grid-template-columns:1fr 1fr}
+  main{padding:14px}
+}
+@media (max-width:640px){nav{width:64px}nav a span,nav .grp{display:none}}
+/* iPad・タッチ端末：入力時に画面が勝手に拡大されないよう16px以上にし、押しやすくする */
+@media (pointer:coarse){input,select,textarea{font-size:16px}.btn{min-height:40px}nav a{min-height:46px}}
+@supports (height:100dvh){.wrap{min-height:calc(100dvh - 52px)}nav{height:calc(100dvh - 52px)}}
+table.tasks td{vertical-align:top}
+table.tasks input.w{min-width:0}
+table.tasks input.tname{font-weight:700;min-width:320px}
+table.tasks select{width:100%;min-width:92px}
+table.tasks .btn{white-space:nowrap}
+table.tasks tr.st-完了 td{background:#f3f6f8;color:#8a99a3}
+table.tasks tr.st-完了 .tname{text-decoration:line-through;color:#8a99a3}
+table.tasks tr.st-進行中 td:first-child{border-left:4px solid var(--blue)}
+table.tasks tr.late td:first-child{border-left:4px solid var(--red)}
+@media print{nav,header,.tools,.bar,.btn{display:none}main{padding:0}.card{break-inside:avoid}input,select{border:0;background:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">就労継続支援B型 収支シミュレーター</div>
+  <div class="info" id="hinfo"></div>
+</header>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<script>
+"use strict";
+// ======================================================================
+// 報酬マスタ（2026年10月時点：令和6年度改定＋令和8年度改定（2026年6月施行））
+// 出典は 収支計画スプシ の報酬マスタタブ・調査_*.md・検証_報酬単価.md と同じ
+// ======================================================================
+const MASTER = {
+  taikei: [
+    {name:"Ⅰ（6:1・平均工賃で評価）", ratio:6, ev:"平均工賃"},
+    {name:"Ⅱ（7.5:1・平均工賃で評価）", ratio:7.5, ev:"平均工賃"},
+    {name:"Ⅲ（10:1・平均工賃で評価）", ratio:10, ev:"平均工賃"},
+    {name:"Ⅳ（6:1・就労参加で一律評価）", ratio:6, ev:"一律"},
+    {name:"Ⅴ（7.5:1・就労参加で一律評価）", ratio:7.5, ev:"一律"},
+    {name:"Ⅵ（10:1・就労参加で一律評価）", ratio:10, ev:"一律"},
+  ],
+  kubun: [
+    ["一（4.8万円以上）",48000],["A（4.5万〜4.8万円）",45000],["二（3.8万〜4.5万円）",38000],
+    ["B（3.5万〜3.8万円）",35000],["三（3.3万〜3.5万円）",33000],["C（3.0万〜3.3万円）",30000],
+    ["四（2.8万〜3.0万円）",28000],["D（2.5万〜2.8万円）",25000],["五（2.3万〜2.5万円）",23000],
+    ["E（2.0万〜2.3万円）",20000],["六（1.8万〜2.0万円）",18000],["F（1.5万〜1.8万円）",15000],
+    ["七（1.0万〜1.5万円）",10000],["八（1万円未満）",0],
+  ],
+  teiin: ["20人以下","21〜40人","41〜60人","61〜80人","81人以上"],
+  base: {
+    0: [[837,746,700,688,666],[812,724,679,668,647],[805,717,674,662,640],[781,696,654,643,621],
+        [758,676,636,625,605],[738,660,620,609,590],[738,660,620,609,590],[726,641,602,591,573],
+        [726,637,600,589,570],[705,624,586,575,557],[703,624,586,575,557],[682,606,569,558,541],
+        [673,600,563,553,535],[590,526,494,485,468]],
+    1: [[748,666,625,614,594],[726,647,607,596,577],[716,637,599,588,568],[695,618,582,571,551],
+        [669,596,561,551,533],[649,580,545,535,518],[649,580,545,535,518],[637,563,529,519,503],
+        [637,557,525,515,498],[618,544,511,501,485],[614,544,511,501,485],[596,528,496,486,471],
+        [584,520,488,479,463],[537,478,449,440,425]],
+    2: [[682,609,564,554,535],[662,591,548,538,519],[653,584,541,530,512],[634,567,525,515,497],
+        [611,547,508,498,480],[594,532,493,484,467],[594,532,493,483,467],[577,517,479,469,453],
+        [572,511,474,465,449],[557,497,461,452,437],[557,497,461,452,437],[541,483,448,439,424],
+        [532,475,441,432,417],[490,438,405,397,384]],
+    3: [[584,519,488,479,462]], 4: [[530,471,443,434,419]], 5: [[484,430,398,390,376]],
+  },
+  // 加算：数える対象 nobe=延べ利用日数 sogei=送迎回数 meal=加算対象食数 shoki=初期加算日数 kesseki=欠席対応回数 manual=手入力 nobeX=延べ×手入力
+  kasan: [],
+  gensan: [
+    ["定員超過利用減算","該当する",0.70,"1日の利用者が定員の150%超、または3か月平均が定員の125%超"],
+    ["人員欠如減算（職員）","3か月未満",0.70,"職業指導員・生活支援員が配置基準を下回る"],
+    ["人員欠如減算（職員）","3か月以上",0.50,"同上が3か月以上続く"],
+    ["人員欠如減算（サビ管）","5か月未満",0.70,"サービス管理責任者が基準を満たさない"],
+    ["人員欠如減算（サビ管）","5か月以上",0.50,"同上が5か月以上続く"],
+    ["個別支援計画未作成減算","3か月未満",0.70,"計画を作らないまま支援（ここでは全員に掛かる最大値で見る）"],
+    ["個別支援計画未作成減算","3か月以上",0.50,"同上が3か月以上続く"],
+    ["身体拘束廃止未実施減算","該当する",0.99,"記録・委員会・指針・研修のどれかが欠ける"],
+    ["虐待防止措置未実施減算","該当する",0.99,"委員会・研修・担当者のどれかが欠ける"],
+    ["業務継続計画未策定減算","該当する",0.99,"感染症・災害の業務継続計画（BCP）が未策定"],
+    ["情報公表未報告減算","該当する",0.95,"障害福祉サービス等情報公表の報告をしていない"],
+    ["短時間利用減算","該当する",0.70,"基本報酬Ⅳ〜Ⅵのみ。利用4時間未満の人が5割以上"],
+  ],
+  chiiki: [["1級地",11.14,"東京都特別区"],["2級地",10.91,"大阪市"],["3級地",10.86,"千葉県成田市"],["4級地",10.68,"神戸市"],
+           ["5級地",10.57,"堺市"],["6級地",10.34,"熊取町・岸和田市・泉佐野市"],["7級地",10.17,"札幌市"],["その他",10.00,""]],
+  shogu: [["取得しない",0,""],["Ⅰイ",0.105,"最上位。福祉専門職員配置等加算の届出と、年額460万円以上の職員1人以上が必要"],
+          ["Ⅰロ",0.109,"Ⅰイに生産性向上・協働化の取組を上乗せ"],["Ⅱイ",0.103,"キャリアパス要件Ⅰ〜Ⅳ＋職場環境等要件。年額460万円以上の職員1人以上が必要"],
+          ["Ⅱロ",0.107,"Ⅱイに生産性向上・協働化の取組を上乗せ"],["Ⅲ",0.088,"キャリアパス要件Ⅰ〜Ⅲ（昇給の仕組み）＋職場環境等要件"],
+          ["Ⅳ",0.074,"キャリアパス要件Ⅰ・Ⅱ＋職場環境等要件"]],
+  tokurei: 0.984,   // 2026年6月以降の新規指定：基本報酬×984/1000（1日あたり単位で四捨五入）
+  shinsetsu: 0.9,   // 開設6か月未満の人員配置は定員×90%で計算
+};
+(function(){
+  const u = v => [v,v,v,v,v];
+  const K = (name,kb,units,per,target,limit,req,excl) => MASTER.kasan.push({name,kb,units,per,target,limit,req,excl:!!excl});
+  K("福祉専門職員配置等加算","Ⅰ",u(15),"日","nobe","Ⅰ〜Ⅲはいずれか1つ","直接支援の常勤職員のうち35%以上が社会福祉士・介護福祉士・精神保健福祉士・公認心理師");
+  K("福祉専門職員配置等加算","Ⅱ",u(10),"日","nobe","同上","上記の資格者が常勤職員の25%以上");
+  K("福祉専門職員配置等加算","Ⅲ",u(6),"日","nobe","同上","直接支援職員の常勤換算のうち常勤が75%以上、または常勤のうち勤続3年以上が30%以上");
+  K("目標工賃達成指導員配置加算","取得する",[45,40,38,37,36],"日","nobe","1日1回","基本報酬Ⅰ・Ⅳ（6:1）で工賃向上計画を作り、目標工賃達成指導員を常勤換算1人以上追加配置");
+  K("目標工賃達成加算","取得する",u(10),"日","nobe","","上の指導員配置加算の事業所が目標工賃を達成（前年度実績が必要）");
+  K("送迎加算","Ⅰ",u(21),"片道","sogei","片道1回ごと","1回の送迎で平均10人以上かつ週3回以上送迎");
+  K("送迎加算","Ⅱ",u(10),"片道","sogei","片道1回ごと","1回平均10人以上または週3回以上のどちらか");
+  K("食事提供体制加算","取得する",u(30),"日","meal","1日1回","事業所で調理した食事を低所得の利用者に提供（市販弁当・出前は対象外）。2027年3月末までの時限措置");
+  K("初期加算","取得する",u(30),"日","shoki","利用開始から30日以内","新規利用者の受け入れ初期の手間を評価");
+  K("欠席時対応加算","取得する",u(94),"回","kesseki","1人月4回まで","急病等の欠席連絡を受け、状況確認・相談援助を行い記録");
+  K("訪問支援特別加算","1時間未満",u(187),"回","manual","月2回まで","3か月以上利用の人が5日以上連続で欠席したとき居宅を訪問");
+  K("訪問支援特別加算","1時間以上",u(280),"回","manual","月2回まで","同上（1時間以上）");
+  K("視覚・聴覚言語障害者支援体制加算","Ⅰ",u(51),"日","nobe","","視覚・聴覚・言語の重度障害者が50%以上、専門職員を40:1以上配置",1);
+  K("視覚・聴覚言語障害者支援体制加算","Ⅱ",u(41),"日","nobe","","同30%以上、専門職員を50:1以上配置",1);
+  K("重度者支援体制加算","Ⅰ",[56,50,47,46,45],"日","nobe","","前年度の障害基礎年金1級受給者が50%以上（前年度実績が必要）");
+  K("重度者支援体制加算","Ⅱ",[28,25,24,23,22],"日","nobe","","同25%以上50%未満");
+  K("高次脳機能障害者支援体制加算","取得する",u(41),"日","nobe","","高次脳機能障害の利用者が30%以上、養成研修修了者を50:1以上配置",1);
+  K("医療連携体制加算","Ⅰ",u(32),"日","manual","","看護職員が訪問して看護（1時間未満）。数量は対象の人日数");
+  K("医療連携体制加算","Ⅱ",u(63),"日","manual","","同（1時間以上2時間未満）");
+  K("医療連携体制加算","Ⅲ",u(125),"日","manual","","同（2時間以上）");
+  K("医療連携体制加算","Ⅳ（対象1人）",u(800),"日","manual","Ⅳ全体で8人まで","医療的ケアが必要な利用者への看護",1);
+  K("医療連携体制加算","Ⅳ（対象2人）",u(500),"日","manual","同上","同（対象者2人）",1);
+  K("医療連携体制加算","Ⅳ（対象3〜8人）",u(400),"日","manual","同上","同（対象者3〜8人）",1);
+  K("医療連携体制加算","Ⅴ",u(500),"日","manual","","看護職員が喀痰吸引等を行う職員に指導した日");
+  K("医療連携体制加算","Ⅵ",u(100),"日","manual","","喀痰吸引等を行う職員が利用者に実施した日");
+  K("在宅時生活支援サービス加算","取得する",u(300),"日","manual","","在宅利用者の居宅へ事業所負担で生活支援者を派遣");
+  K("社会生活支援特別加算","取得する",u(480),"日","manual","支援開始から3年以内","医療観察法対象者・矯正施設等の退所者を専門職員の体制で支援");
+  K("利用者負担上限額管理加算","取得する",u(150),"月","manual","月1回","複数事業所を使う利用者の負担上限額を管理。数量は対象人数");
+  [93,86,79,72,65,58,51,48].forEach((v,i)=>K("就労移行支援体制加算",`Ⅰ・区分${"一二三四五六七八"[i]}`,[v,null,null,null,null],"日","nobeX","前年度の就労定着者数","基本報酬Ⅰ・Ⅱ。前年度に一般就労し6か月以上定着した人がいる場合。数量は定着者数"));
+  [90,83,76,69,62,55,48,45].forEach((v,i)=>K("就労移行支援体制加算",`Ⅱ・区分${"一二三四五六七八"[i]}`,[v,null,null,null,null],"日","nobeX","同上","基本報酬Ⅲ。数量は定着者数"));
+  K("就労移行支援体制加算","Ⅲ",[42,18,10,7,6],"日","nobeX","同上","基本報酬Ⅳ・Ⅴ。数量は定着者数");
+  K("就労移行支援体制加算","Ⅳ",[39,17,9,7,5],"日","nobeX","同上","基本報酬Ⅵ。数量は定着者数");
+  K("就労移行連携加算","取得する",u(1000),"回","manual","1人1回限り","就労移行支援へ移る人について事業者と連絡調整し文書で情報提供");
+  K("体験利用支援加算","Ⅰ（初日〜5日目）",u(500),"日","manual","","障害者支援施設等の利用者の体験利用（通所のみの事業所は原則対象外）");
+  K("体験利用支援加算","Ⅱ（6日目〜15日目）",u(250),"日","manual","","同上");
+  K("緊急時受入加算","取得する",u(100),"日","manual","","地域生活支援拠点等として緊急時に夜間も支援");
+  K("集中的支援加算","取得する",u(1000),"回","manual","月4回まで・3か月以内","強度行動障害が悪化した人に広域的支援人材が集中的に支援");
+  K("地域協働加算","取得する",u(30),"日","manual","","基本報酬Ⅳ〜Ⅵ。地域と協働した生産活動を毎月ネット公表。数量は参加人日数");
+  K("ピアサポート実施加算","取得する",u(100),"月","manual","","基本報酬Ⅳ〜Ⅵ。ピアサポート研修修了者2名以上を配置。数量は対象人数");
+})();
+const KASAN_NAMES = [...new Set(MASTER.kasan.map(k=>k.name))];
+const GEN_NAMES = [...new Set(MASTER.gensan.map(g=>g[0]))];
+const TARGET_LABEL = {nobe:"延べ利用日数",sogei:"送迎回数（片道）",meal:"加算対象の食数",shoki:"初期加算の日数",kesseki:"欠席対応回数",manual:"手入力（月あたり）",nobeX:"延べ日数×手入力"};
+
+// ======================================================================
+// 初期値（すべて仮。設定ページで変更できる）
+// ======================================================================
+const DEFAULTS = {
+  chiiki:"6級地", teiin:20, taikei:1, kaisetsu:"2027-04", kubunAfter:"七（1.0万〜1.5万円）", tokurei:true,
+  days:22, jokinHours:160, fukuri:0.15,
+  scenario:"標準",
+  scen:{悲観:{start:3,inc:0.5,max:18,rate:0.70}, 標準:{start:5,inc:1,max:24,rate:0.80}, 楽観:{start:8,inc:2,max:28,rate:0.85}},
+  sogeiRate:0.8, mealRate:0.9, lowIncome:0.9, mealType:"弁当仕入れ", bento:450, tezukuri:250, mealFee:300, absentRate:0.5,
+  kasan:{"送迎加算":{kb:"Ⅱ",qty:0},"食事提供体制加算":{kb:"取得する",qty:0},"初期加算":{kb:"取得する",qty:0},"欠席時対応加算":{kb:"取得する",qty:0}},
+  gensan:{}, shogu:"Ⅲ", shoguHaibun:1,
+  work:[{name:"受託作業A",sales:800,part:0.6,cost:0.2},
+        {name:"受託作業B",sales:600,part:0.3,cost:0.05},
+        {name:"その他（検討中）",sales:0,part:0.1,cost:0}],
+  wageShare:1,
+  fixed:[{name:"家賃",amount:200000,note:"回答による目安"},{name:"水道光熱費",amount:50000,note:"仮"},{name:"通信費（電話・ネット）",amount:15000,note:"仮"},
+         {name:"送迎車両リース（2台）",amount:80000,note:"仮。定員20名なら2台が目安"},{name:"ガソリン代",amount:40000,note:"仮"},
+         {name:"車両保険・税",amount:10000,note:"仮"},{name:"消耗品・日用品",amount:20000,note:"仮"},{name:"請求ソフト利用料",amount:15000,note:"国保連への請求に使うソフト"},
+         {name:"損害賠償保険",amount:5000,note:"仮"},{name:"研修・採用費",amount:20000,note:"仮"},{name:"広告・営業費",amount:10000,note:"仮"},
+         {name:"税理士・社労士報酬",amount:40000,note:"仮"},{name:"栄養士の献立関与（委託）",amount:10000,note:"食事提供体制加算の要件"},
+         {name:"修繕・雑費",amount:20000,note:"仮"}],
+  staff:[
+    {name:"管理者兼サービス管理責任者（母）",type:"常勤",count:1,pay:0,hours:0,bonus:0,inBase:false,start:1,note:"役員報酬は当面0円（2026-10-23決定）"},
+    {name:"職業指導員",type:"常勤",count:1,pay:230000,hours:0,bonus:2,inBase:true,start:1,note:""},
+    {name:"生活支援員（父）",type:"常勤",count:1,pay:230000,hours:0,bonus:2,inBase:true,start:1,note:"給与は仮（要確認）"},
+    {name:"生活支援員（パート）",type:"非常勤",count:1,pay:1150,hours:120,bonus:0,inBase:true,start:1,note:""},
+    {name:"目標工賃達成指導員",type:"常勤",count:0,pay:230000,hours:0,bonus:2,inBase:false,start:1,auto:"kotin",note:"加算を取ると自動で1人"},
+    {name:"調理員（手作りの場合）",type:"非常勤",count:0,pay:1100,hours:80,bonus:0,inBase:false,start:1,auto:"meal",note:"食事を手作りにすると自動で1人"},
+    {name:"送迎ドライバー（パート）",type:"非常勤",count:0,pay:0,hours:0,bonus:0,inBase:false,start:1,note:"職員が送迎する前提で0人"},
+    {name:"事務員（パート）",type:"非常勤",count:0,pay:0,hours:0,bonus:0,inBase:false,start:1,note:""},
+  ],
+  init:{prep:2, deposit:6, items:[
+    {name:"物件取得費（敷金・礼金・仲介手数料）",auto:"deposit",amount:0,note:"家賃×月数"},
+    {name:"内装・改装工事",amount:3000000,note:"仮。物件の状態で大きく変わる"},
+    {name:"消防設備（自動火災報知設備・誘導灯・消火器など）",amount:1000000,note:"仮。消防署に事前相談"},
+    {name:"備品（机・椅子・PC・複合機・家電）",amount:1000000,note:"仮"},
+    {name:"作業用機器（裁断機・プリンターなど）",amount:500000,note:"仮"},
+    {name:"送迎車両の初期費用",amount:0,note:"リースなら0"},
+    {name:"法人設立・指定申請の費用",amount:300000,note:"B型は法人でないと指定を受けられない"},
+    {name:"開設前の人件費（準備期間）",auto:"prepStaff",amount:0,note:"準備期間の半分は職員を雇っている想定"},
+    {name:"開設前の家賃（準備期間）",auto:"prepRent",amount:0,note:""},
+    {name:"広告・ホームページ・パンフレット",amount:200000,note:"仮"},
+    {name:"予備費",amount:500000,note:"仮"},
+  ]},
+  fund:{self:3000000, loan:10000000, rate:0.025, term:84, grace:6, lag:2},
+};
+
+// ======================================================================
+// 保存（このブラウザの中だけに保存される）
+// ======================================================================
+const KEY = "b-plan-settings-v2";
+const clone = o => JSON.parse(JSON.stringify(o));
+function merge(base, add){
+  for (const k in add){
+    if (add[k] && typeof add[k]==="object" && !Array.isArray(add[k]) && base[k] && typeof base[k]==="object" && !Array.isArray(base[k])) merge(base[k], add[k]);
+    else base[k] = add[k];
+  }
+  return base;
+}
+function load(){
+  try { const t = localStorage.getItem(KEY); if (t) return merge(clone(DEFAULTS), JSON.parse(t)); } catch(e) {}
+  return clone(DEFAULTS);
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
+let S = load();
+
+// ======================================================================
+// 計算エンジン（スプシの月次収支・資金繰りと同じ式）
+// ======================================================================
+const kasanSel = name => S.kasan[name] || {kb:"取得しない", qty:0};
+function context(){
+  const ch = MASTER.chiiki.find(c=>c[0]===S.chiiki) || MASTER.chiiki[5];
+  const kibo = S.teiin<=20?0:S.teiin<=40?1:S.teiin<=60?2:S.teiin<=80?3:4;
+  const tk = MASTER.taikei[S.taikei];
+  const mo = Number(String(S.kaisetsu).split("-")[1]) || 4;
+  const minashi = mo===4 ? 12 : 12 + (((3-mo)%12)+12)%12 + 1;
+  const rows = MASTER.base[S.taikei];
+  const ichi = tk.ev==="一律";
+  const kIdx = Math.max(0, MASTER.kubun.findIndex(k=>k[0]===S.kubunAfter));
+  const baseBefore = ichi ? rows[0][kibo] : rows[13][kibo];
+  const baseAfter  = ichi ? rows[0][kibo] : rows[kIdx][kibo];
+  const kas = KASAN_NAMES.map(name=>{
+    const sel = kasanSel(name);
+    const first = MASTER.kasan.find(k=>k.name===name);
+    const e = MASTER.kasan.find(k=>k.name===name && k.kb===sel.kb);
+    return {name, kb:sel.kb, qty:+sel.qty||0, target:first.target, unit: (sel.kb!=="取得しない" && e) ? (e.units[kibo]||0) : 0};
+  });
+  const exclTaken = ["視覚・聴覚言語障害者支援体制加算","高次脳機能障害者支援体制加算"].some(n=>kasanSel(n).kb!=="取得しない");
+  const tokurei = (!S.tokurei || exclTaken) ? 1 : MASTER.tokurei;
+  let gensan = 1;
+  GEN_NAMES.forEach(n=>{ const kb = S.gensan[n]; const g = MASTER.gensan.find(x=>x[0]===n && x[1]===kb); if (g) gensan *= g[2]; });
+  const shoguRate = (MASTER.shogu.find(s=>s[0]===S.shogu)||[0,0])[1];
+  const staff = S.staff.map(s=>{
+    let count = +s.count||0;
+    if (s.auto==="kotin") count = kasanSel("目標工賃達成指導員配置加算").kb!=="取得しない" ? 1 : 0;
+    if (s.auto==="meal")  count = S.mealType==="手作り" ? 1 : 0;
+    const per = s.type==="常勤" ? +s.pay : s.pay*s.hours;
+    const monthly = count*per*(1+(+s.bonus||0)/12);
+    const fuk = monthly*S.fukuri;
+    const fte = s.type==="常勤" ? count : count*s.hours/S.jokinHours;
+    return {...s, count, per, monthly, fuk, total:monthly+fuk, fte};
+  });
+  const mealCost = S.mealType==="手作り" ? S.tezukuri : S.bento;
+  const rent = (S.fixed.find(f=>f.name==="家賃")||S.fixed[0]||{amount:0}).amount;
+  const staffTotal = staff.reduce((a,s)=>a+s.total,0);
+  const initItems = S.init.items.map(it=>{
+    let amount = +it.amount||0;
+    if (it.auto==="deposit") amount = rent*S.init.deposit;
+    if (it.auto==="prepStaff") amount = staffTotal*S.init.prep/2;
+    if (it.auto==="prepRent") amount = rent*S.init.prep;
+    return {...it, amount};
+  });
+  const initTotal = initItems.reduce((a,i)=>a+i.amount,0);
+  const f = S.fund, r = f.rate/12, n = f.term-f.grace;
+  const pmt = f.loan===0 ? 0 : (r===0 ? f.loan/n : f.loan*r/(1-Math.pow(1+r,-n)));
+  return {tanka:ch[1], kibo, tk, minashi, ichi, baseBefore, baseAfter, kas, tokurei, gensan, shoguRate, staff, staffTotal, mealCost, rent, initItems, initTotal, pmt};
+}
+
+// 1か月分の計算。m＝開設から何か月目、reg＝登録者、prev＝前月の登録者、rate＝利用率、allStaff＝開始月を無視して全員数える
+function calcMonth(c, m, reg, prev, rate, allStaff){
+  const o = {m, reg};
+  o.newU = Math.max(0, reg-prev);
+  o.daily = Math.min(reg*rate, S.teiin);
+  o.nobe = o.daily*S.days;
+  const q = {
+    nobe:o.nobe,
+    sogei:o.nobe*S.sogeiRate*2,
+    meal:S.mealType==="手作り" ? o.nobe*S.mealRate*S.lowIncome : 0,
+    shoki:o.newU*S.days*rate,
+    kesseki:Math.min(reg*4, (reg*S.days-o.nobe)*S.absentRate),
+  };
+  o.meals = o.nobe*S.mealRate;
+  o.q = q;
+  o.baseUnit = m<=c.minashi ? c.baseBefore : c.baseAfter;
+  o.unitDay = Math.round(o.baseUnit*c.tokurei);
+  o.kihon = o.unitDay*o.nobe*c.gensan;
+  o.kasan = c.kas.map(k=>{
+    const qty = k.target==="manual" ? k.qty : k.target==="nobeX" ? o.nobe*k.qty : q[k.target];
+    return {name:k.name, kb:k.kb, units:k.unit*qty};
+  });
+  o.kasanSum = o.kasan.reduce((a,k)=>a+k.units,0);
+  o.shogu = (o.kihon+o.kasanSum)*c.shoguRate;
+  o.totalUnits = o.kihon+o.kasanSum+o.shogu;
+  o.kyufu = Math.floor(o.totalUnits*c.tanka);
+  o.yenKihon = o.kihon*c.tanka; o.yenKasan = o.kasanSum*c.tanka; o.yenShogu = o.kyufu-o.yenKihon-o.yenKasan;
+  o.mealFee = o.meals*S.mealFee;
+  o.income = o.kyufu+o.mealFee;
+  o.works = S.work.map(w=>{ const sales=o.nobe*w.part*w.sales; return {name:w.name, sales, cost:sales*w.cost}; });
+  o.wSales = o.works.reduce((a,w)=>a+w.sales,0);
+  o.wCost = o.works.reduce((a,w)=>a+w.cost,0);
+  o.wage = (o.wSales-o.wCost)*S.wageShare;
+  o.wDiff = o.wSales-o.wCost-o.wage;
+  o.avgWage = o.daily ? o.wage/o.daily : 0;
+  const act = c.staff.filter(s=>allStaff || (+s.start||1)<=m);
+  o.salary = act.reduce((a,s)=>a+s.monthly,0);
+  o.fukuri = act.reduce((a,s)=>a+s.fuk,0);
+  o.shoguPay = Math.floor(o.shogu*c.tanka)*S.shoguHaibun;
+  o.food = o.meals*c.mealCost;
+  o.fixed = S.fixed.map(f=>({name:f.name, amount:+f.amount||0}));
+  o.fixedSum = o.fixed.reduce((a,f)=>a+f.amount,0);
+  o.expense = o.salary+o.fukuri+o.shoguPay+o.food+o.fixedSum;
+  o.profit = o.income-o.expense+o.wDiff;
+  o.fte = act.filter(s=>s.inBase).reduce((a,s)=>a+s.fte,0);
+  return o;
+}
+
+const regAt = (sc, m) => Math.min(sc.max, Math.round(sc.start+sc.inc*(m-1)));
+function simulate(scName){
+  const c = context();
+  const sc = S.scen[scName||S.scenario];
+  const months = [];
+  for (let m=1; m<=36; m++){
+    const reg = regAt(sc,m), prev = m===1 ? 0 : regAt(sc,m-1);
+    months.push(calcMonth(c, m, reg, prev, sc.rate, false));
+  }
+  // 人員配置：6か月未満は定員×90%、6〜12か月は直近6か月、1年以上は直近12か月の1日平均
+  months.forEach((o,i)=>{
+    const avg = n => months.slice(i-n,i).reduce((a,x)=>a+x.daily,0)/n;
+    o.baseCount = o.m<=6 ? S.teiin*MASTER.shinsetsu : o.m<=12 ? avg(6) : avg(12);
+    o.needStaff = o.baseCount/c.tk.ratio;
+    o.staffOK = o.fte >= o.needStaff - 1e-9;
+  });
+  let cum = 0; months.forEach(o=>{ cum += o.profit; o.cum = cum; });
+  // 資金繰り
+  const f = S.fund;
+  let cash = f.self+f.loan-c.initTotal;
+  const cash0 = cash;
+  months.forEach(o=>{
+    const inK = o.m>f.lag ? months[o.m-f.lag-1].kyufu : 0;
+    const repay = o.m>f.term ? 0 : o.m<=f.grace ? f.loan*f.rate/12 : c.pmt;
+    o.cashIn = inK; o.repay = repay;
+    cash = cash + inK + o.mealFee + o.wSales - o.expense - o.wCost - o.wage - repay;
+    o.cash = cash;
+  });
+  let minCash = cash0, minM = 0;
+  months.forEach(o=>{ if (o.cash<minCash){ minCash=o.cash; minM=o.m; } });
+  const yr = (k,y) => months.slice(12*y,12*y+12).reduce((a,o)=>a+o[k],0);
+  const firstPlus = months.find(o=>o.profit>=0);
+  const cumPlus = months.find(o=>o.cum>=0);
+  return {c, sc, months, cash0, minCash, minM, yr, firstPlus, cumPlus};
+}
+
+// 安定期（または1年目）の1か月。新規利用者なし・職員は全員
+function steady(reg, y1){
+  const c = context();
+  const sc = S.scen[S.scenario];
+  const m = y1 ? 1 : c.minashi+1;
+  const o = calcMonth(c, m, reg, reg, sc.rate, true);
+  o.needStaff = o.daily/c.tk.ratio;
+  return o;
+}
+function breakEven(y1){
+  for (let n=0; n<=S.teiin*3; n++){ if (steady(n,y1).profit>=0) return n; }
+  return null;
+}
+
+// ======================================================================
+// 表示の部品
+// ======================================================================
+const yen = n => Math.round(n).toLocaleString("ja-JP");
+const man = n => { const v = Math.round(n/1000)/10; return (v>0?"":"")+v.toLocaleString("ja-JP",{minimumFractionDigits:1,maximumFractionDigits:1}); };
+const sgnMan = n => (n>0?"+":"")+man(n);
+const cls = n => n<0 ? "neg" : "pos";
+const esc = s => String(s??"").replace(/[&<>"]/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+function ym(m){
+  const [y,mo] = String(S.kaisetsu).split("-").map(Number);
+  const d = new Date(y, mo-1+m-1, 1);
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+const ICON = {
+  home:'<path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  chart:'<path d="M4 20V10m6 10V4m6 16v-7m4 7H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
+  gear:'<circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M4.9 4.9 7 7m10 10 2.1 2.1M4.9 19.1 7 17m10-10 2.1-2.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  book:'<path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-5a3 3 0 0 0-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  yen:'<path d="M6 3l6 8 6-8M12 11v10M7 13h10M7 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  check:'<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7.5 12.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+};
+const PAGES = [
+  {id:"home", grp:"お母様向け", name:"ひと目でわかる収支", icon:"home"},
+  {id:"start", grp:"お母様向け", name:"開設に必要なお金", icon:"yen"},
+  {id:"tasks", grp:"開設準備", name:"やることリスト", icon:"check"},
+  {id:"monthly", grp:"詳しく見る", name:"36か月の見込み", icon:"chart"},
+  {id:"detail", grp:"詳しく見る", name:"1か月の内訳", icon:"list"},
+  {id:"settings", grp:"管理", name:"設定", icon:"gear"},
+  {id:"master", grp:"管理", name:"報酬マスタ", icon:"book"},
+];
+let page = (location.hash||"#home").slice(1);
+let homeY1 = false, homeReg = null, setTab = "basic", detailM = 13;
+
+function renderNav(){
+  let h = "", g = "";
+  PAGES.forEach(p=>{
+    if (p.grp!==g){ g=p.grp; h += `<div class="grp">${g}</div>`; }
+    h += `<a class="${p.id===page?"on":""}" data-page="${p.id}"><svg viewBox="0 0 24 24">${ICON[p.icon]}</svg><span>${p.name}</span></a>`;
+  });
+  document.getElementById("nav").innerHTML = h;
+  const c = context();
+  document.getElementById("hinfo").innerHTML =
+    `<span>大阪府泉南郡熊取町</span><span>定員 ${S.teiin}名</span><span>報酬 ${c.tk.name.split("（")[0]}</span><span class="keep">開設 ${ym(1)}</span><span>シナリオ：${S.scenario}</span>`;
+}
+function render(){
+  if (!PAGES.some(p=>p.id===page)) page = "home";
+  renderNav();
+  const el = document.getElementById("main");
+  const sy = window.scrollY;
+  el.innerHTML = ({home:pHome, start:pStart, monthly:pMonthly, detail:pDetail, settings:pSettings, master:pMaster, tasks:pTasks})[page]();
+  if (page==="settings") updateDerived();
+  window.scrollTo(0, sy);
+}
+function go(p){ page = p; location.hash = p; window.scrollTo(0,0); render(); }
+
+// ======================================================================
+// ページ：ひと目でわかる収支
+// ======================================================================
+function pHome(){
+  const sc = S.scen[S.scenario];
+  if (homeReg===null) homeReg = sc.max;
+  const o = steady(homeReg, homeY1);
+  const be = breakEven(homeY1);
+  const maxReg = Math.max(30, Math.ceil(S.teiin/sc.rate)+4);
+  const per1 = steady(homeReg+1, homeY1).profit - o.profit;
+  const staffCost = o.salary+o.fukuri+o.shoguPay;
+  const car = o.fixed.filter(f=>/車|ガソリン/.test(f.name)).reduce((a,f)=>a+f.amount,0);
+  const rent = o.fixed.filter(f=>f.name==="家賃").reduce((a,f)=>a+f.amount,0);
+  const other = o.fixedSum-car-rent;
+  const kasanYen = o.yenKasan;
+  const res = o.profit + 0; // 生産活動の差額は工賃に回すため通常0
+  const opt = (name, options, cur, onKey) => {
+    const effs = options.map(v=>{ const t = withTemp(onKey, v, ()=>steady(homeReg, homeY1).profit); return t; });
+    const d = effs[Math.max(0, options.indexOf(cur))] - effs[0];
+    return `<tr><td>${name}</td><td><div class="seg">${options.map((v,i)=>`<button class="${v===cur?"on":""}" data-home="${onKey}" data-val="${esc(v)}">${esc(labelOf(onKey,v))}</button>`).join("")}</div></td>
+      <td class="eff ${d>=500?"p":"z"}">${Math.abs(d)<500?"±0":sgnMan(d)+"万円/月"}</td></tr>`;
+  };
+  const shortStaff = o.fte < o.needStaff - 1e-9;
+  return `
+  <div class="crumb">お母様向け ＞ ひと目でわかる収支</div>
+  <h1>毎月いくらかかって、何人集まれば、いくら残るか</h1>
+  <div class="card"><div class="body">
+    <div class="ctrl">
+      <div class="slider"><label>登録する利用者</label>
+        <input type="range" min="0" max="${maxReg}" value="${homeReg}" data-homereg>
+        <span class="v">${homeReg}人</span></div>
+      <div><label>時期　</label><div class="seg">
+        <button class="${!homeY1?"on":""}" data-y1="0">2年目以降（安定期）</button>
+        <button class="${homeY1?"on":""}" data-y1="1">1年目（報酬が低い時期）</button></div></div>
+    </div>
+    <div class="note">1日に来る人は登録者の${Math.round(sc.rate*100)}%として計算（${homeReg}人登録 → 1日 約${o.daily.toFixed(1)}人。定員${S.teiin}人が上限）。${homeY1?"新しく開いた事業所は1年目、国からの報酬が最低ランクで計算されます。":""}</div>
+  </div></div>
+
+  <div class="flow" style="margin-bottom:18px">
+    <div class="box out"><div class="ttl">① 毎月かかるお金</div>
+      <div class="big">${man(o.expense)}<small>万円</small></div>
+      <ul><li><span>職員の給料（社会保険込み）</span><b>${man(staffCost)}万</b></li>
+          <li><span>家賃</span><b>${man(rent)}万</b></li>
+          <li><span>送迎の車（リース・ガソリン等）</span><b>${man(car)}万</b></li>
+          <li><span>昼ごはんの材料・弁当</span><b>${man(o.food)}万</b></li>
+          <li><span>光熱費・通信費・その他</span><b>${man(other)}万</b></li></ul></div>
+    <div class="op">−</div>
+    <div class="box in"><div class="ttl">② 入ってくるお金</div>
+      <div class="big">${man(o.income)}<small>万円</small></div>
+      <ul><li><span>国からの報酬（基本）</span><b>${man(o.yenKihon)}万</b></li>
+          <li><span>国からの報酬（加算）</span><b>${man(kasanYen)}万</b></li>
+          <li><span>職員の賃上げ用の報酬</span><b>${man(o.yenShogu)}万</b></li>
+          <li><span>利用者からの食事代</span><b>${man(o.mealFee)}万</b></li></ul></div>
+    <div class="op">＝</div>
+    <div class="box res ${res>=0?"plus":"minus"}"><div class="ttl">③ 毎月残るお金</div>
+      <div class="big">${sgnMan(res)}<small>万円</small></div>
+      <div style="font-size:15px;line-height:1.7">${res>=0?"黒字です。":"赤字です。"}<br>
+      利用者が1人増えると<b> ${sgnMan(per1)}万円</b>/月</div>
+      <div class="note" style="margin-top:6px">年間にすると ${sgnMan(res*12)}万円</div></div>
+  </div>
+
+  <div class="card"><h2>黒字にするには</h2><div class="body">
+    <div class="need">
+      ${be===null ? `<div class="num">定員内では黒字になりません</div><div class="note">支出を減らすか、加算を増やす必要があります。</div>` :
+      `<div>登録者が<span class="num"> ${be}人 </span>以上（1日 約${Math.min(be*sc.rate,S.teiin).toFixed(1)}人）で黒字</div>
+       <div class="note">今の設定は${homeReg}人。${homeReg>=be?`あと${homeReg-be}人減っても黒字です。`:`あと<b>${be-homeReg}人</b>必要です。`}</div>`}
+    </div>
+    ${be===null?"":`<div class="gauge"><div class="fill" style="width:${Math.min(100,homeReg/maxReg*100)}%"></div><div class="mark" style="left:${be/maxReg*100}%"></div></div>
+    <div class="gl"><span>0人</span><span style="color:var(--orange)">▲ 黒字ライン ${be}人</span><span>${maxReg}人</span></div>`}
+    ${shortStaff?`<div class="warn" style="margin-top:12px">この人数だと職員が足りません（必要 ${o.needStaff.toFixed(2)}人分／配置 ${o.fte.toFixed(2)}人分）。設定ページの「職員」で人を増やしてください。</div>`:""}
+  </div></div>
+
+  <div class="card"><h2>加算（＝条件を満たすと国の報酬に上乗せされるお金）を取るとどう変わる？</h2><div class="body" style="padding-top:4px">
+    <table class="opt">
+      ${opt("送迎加算（送り迎えをする）", ["取得しない","Ⅱ","Ⅰ"], kasanSel("送迎加算").kb, "k:送迎加算")}
+      ${opt("昼ごはんの出し方", ["弁当仕入れ","手作り"], S.mealType, "meal")}
+      ${opt("欠席時対応加算（休みの連絡に対応）", ["取得しない","取得する"], kasanSel("欠席時対応加算").kb, "k:欠席時対応加算")}
+      ${opt("福祉専門職員配置等加算（資格者を多く置く）", ["取得しない","Ⅲ","Ⅱ","Ⅰ"], kasanSel("福祉専門職員配置等加算").kb, "k:福祉専門職員配置等加算")}
+      ${opt("処遇改善加算（職員の賃上げ用）", ["取得しない","Ⅳ","Ⅲ","Ⅱイ","Ⅰイ"], S.shogu, "shogu")}
+    </table>
+    <div class="note" style="margin-top:10px">
+      ・右の金額は「取らない場合」と比べて毎月いくら残るお金が増えるか。<br>
+      ・手作りにすると加算（1食あたり約310円）が付く代わりに、調理する人の給料がかかります。弁当の仕入れでは加算は付きません。<br>
+      ・処遇改善加算は全額を職員の給料に上乗せするルールなので、残るお金は変わりません（職員を集めやすくなる効果）。<br>
+      ・ここで切り替えた内容は設定にも反映されます。
+    </div>
+  </div></div>
+
+  <div class="card"><h2>利用者さんに払える工賃（＝作業のお給料）</h2><div class="body">
+    <div class="money">
+      <div>作業の売上（月）<b>${man(o.wSales)}万円</b></div>
+      <div>材料費などを引いて工賃に回す額<b>${man(o.wage)}万円</b></div>
+      <div>1人あたりの工賃（月）<b>${yen(o.avgWage)}円</b></div>
+    </div>
+    <div class="note" style="margin-top:8px">工賃は作業の売上から払うルールです（国の報酬からは払えません）。そのため、上の「毎月残るお金」には入れていません。</div>
+  </div></div>`;
+}
+function labelOf(key, v){
+  if (v==="取得しない") return "取らない";
+  if (v==="取得する") return "取る";
+  return v;
+}
+// 一時的に設定を変えて計算する（ホームの効果表示用）
+function withTemp(key, v, fn){
+  const backup = clone(S);
+  applyHome(key, v);
+  const r = fn();
+  S = backup;
+  return r;
+}
+function applyHome(key, v){
+  if (key.startsWith("k:")){ const n = key.slice(2); S.kasan[n] = {...(S.kasan[n]||{qty:0}), kb:v}; }
+  else if (key==="meal"){
+    S.mealType = v;
+    S.kasan["食事提供体制加算"] = {...(S.kasan["食事提供体制加算"]||{qty:0}), kb: "取得する"};
+  }
+  else if (key==="shogu") S.shogu = v;
+}
+
+// ======================================================================
+// ページ：開設に必要なお金
+// ======================================================================
+function pStart(){
+  const r = simulate();
+  const c = r.c, f = S.fund;
+  const have = f.self+f.loan;
+  const short = Math.min(0, r.minCash);
+  const need = have - r.minCash; // 資金ショートしない最低限
+  const loss = need - c.initTotal;
+  return `
+  <div class="crumb">お母様向け ＞ 開設に必要なお金</div>
+  <h1>開設までに用意するお金</h1>
+  <div class="note" style="margin-bottom:12px">国からの報酬は、サービスをした月の2か月後に入金されます。そのうえ最初は利用者が少ないため、しばらくは出ていくお金の方が多くなります。（シナリオ：${S.scenario}／開設月 ${sc0()} 人から毎月 ${S.scen[S.scenario].inc} 人ずつ増える想定）</div>
+  <div class="flow" style="margin-bottom:18px">
+    <div class="box out"><div class="ttl">① 開設前にかかるお金</div><div class="big">${man(c.initTotal)}<small>万円</small></div>
+      <ul>${c.initItems.filter(i=>i.amount>0).sort((a,b)=>b.amount-a.amount).slice(0,5).map(i=>`<li><span>${esc(i.name.split("（")[0])}</span><b>${man(i.amount)}万</b></li>`).join("")}</ul></div>
+    <div class="op">＋</div>
+    <div class="box out"><div class="ttl">② 軌道に乗るまでの赤字</div><div class="big">${man(loss)}<small>万円</small></div>
+      <div style="font-size:14px;line-height:1.7">月の収支が黒字になるのは<br><b>${r.firstPlus?`${r.firstPlus.m}か月目（${ym(r.firstPlus.m)}）`:"36か月以内に黒字化しない"}</b><br>借入の返済も含む</div></div>
+    <div class="op">＝</div>
+    <div class="box res minus"><div class="ttl">③ 必要なお金の合計</div><div class="big">${man(need)}<small>万円</small></div>
+      <div style="font-size:14px;line-height:1.7">いちばん苦しいのは ${r.minM?`${r.minM}か月目（${ym(r.minM)}）`:"開設前"}</div></div>
+  </div>
+  <div class="card"><h2>用意できるお金との比較</h2><div class="body">
+    <table class="form">
+      <tr><th>自己資金</th><td>${man(f.self)}万円</td></tr>
+      <tr><th>融資（借入）</th><td>${man(f.loan)}万円</td></tr>
+      <tr><th>合計</th><td><b>${man(have)}万円</b></td></tr>
+      <tr><th>過不足</th><td><b class="${cls(short)}" style="font-size:20px">${short<0?`${man(-short)}万円 足りません`:"足りています"}</b></td></tr>
+    </table>
+    ${short<0?`<div class="note" style="margin-top:10px">足りない分は、融資を増やす・開設前の費用を抑える・利用者を早く集める（開設前からの営業）のどれかで埋める必要があります。</div>`:""}
+  </div></div>
+  ${cashChart(r)}`;
+}
+const sc0 = () => S.scen[S.scenario].start;
+
+// ======================================================================
+// ページ：36か月の見込み
+// ======================================================================
+function pMonthly(){
+  const r = simulate();
+  const y = r.yr;
+  const segs = ["悲観","標準","楽観"].map(n=>`<button class="${n===S.scenario?"on":""}" data-scen="${n}">${n}</button>`).join("");
+  const comp = ["悲観","標準","楽観"].map(n=>{ const x = simulate(n); return `<tr><td>${n}</td><td class="n">${x.sc.start}人→毎月+${x.sc.inc}人（上限${x.sc.max}人）</td><td class="n ${cls(x.yr("profit",0))}">${yen(x.yr("profit",0))}</td><td class="n ${cls(x.yr("profit",1))}">${yen(x.yr("profit",1))}</td><td class="n">${x.firstPlus?x.firstPlus.m+"か月目":"—"}</td><td class="n ${cls(x.minCash)}">${yen(x.minCash)}</td></tr>`; }).join("");
+  const M = r.months;
+  const row = (label, fn, opt={}) => `<tr class="${opt.b?"b":""}"><td class="stick">${label}</td>${M.map(o=>{ const v=fn(o); return `<td class="n ${opt.color?cls(v):""}">${typeof v==="string"?v:(opt.dec?v.toFixed(1):yen(v))}</td>`; }).join("")}</tr>`;
+  const sec = t => `<tr class="sec"><td class="stick">${t}</td>${M.map(()=>"<td></td>").join("")}</tr>`;
+  return `
+  <div class="crumb">詳しく見る ＞ 36か月の見込み</div>
+  <h1>36か月の見込み</h1>
+  <div class="tools"><span style="align-self:center;font-weight:700">シナリオ</span><div class="seg">${segs}</div></div>
+  <div class="kpis">
+    <div class="kpi"><div class="t">1年目の損益</div><div class="v ${cls(y("profit",0))}">${sgnMan(y("profit",0))}万円</div></div>
+    <div class="kpi"><div class="t">2年目の損益</div><div class="v ${cls(y("profit",1))}">${sgnMan(y("profit",1))}万円</div></div>
+    <div class="kpi"><div class="t">月の収支が黒字になる月</div><div class="v">${r.firstPlus?`${r.firstPlus.m}か月目`:"—"}</div><div class="note">${r.firstPlus?ym(r.firstPlus.m):""}</div></div>
+    <div class="kpi"><div class="t">手元資金の最低額</div><div class="v ${cls(r.minCash)}">${sgnMan(r.minCash)}万円</div><div class="note">${r.minM?ym(r.minM):"開設前"}</div></div>
+  </div>
+  ${profitChart(r)}
+  <div class="card"><h2>シナリオ比較</h2><div class="body scroll">
+    <table class="grid"><tr><th>シナリオ</th><th>利用者の集まり方</th><th>1年目損益（円）</th><th>2年目損益（円）</th><th>黒字化</th><th>手元資金の最低額（円）</th></tr>${comp}</table>
+  </div></div>
+  <div class="card"><h2>月別の表（単位：円）</h2><div class="body scroll">
+    <table class="grid">
+      <tr><th class="stick">項目</th>${M.map(o=>`<th>${o.m}か月目<br>${ym(o.m)}</th>`).join("")}</tr>
+      ${sec("利用者")}
+      ${row("登録利用者数（人）", o=>String(o.reg))}
+      ${row("1日平均の利用者数（人）", o=>o.daily, {dec:1})}
+      ${row("基本報酬の単位（1日）", o=>String(o.unitDay))}
+      ${sec("収入")}
+      ${row("基本報酬", o=>o.yenKihon)}
+      ${row("加算", o=>o.yenKasan)}
+      ${row("処遇改善加算", o=>o.yenShogu)}
+      ${row("食事代", o=>o.mealFee)}
+      ${row("収入の合計", o=>o.income, {b:1})}
+      ${sec("支出")}
+      ${row("給与・賞与", o=>o.salary)}
+      ${row("法定福利費（社会保険の会社負担）", o=>o.fukuri)}
+      ${row("処遇改善の職員への配分", o=>o.shoguPay)}
+      ${row("食材費・弁当代", o=>o.food)}
+      ${row("固定費（家賃・車両など）", o=>o.fixedSum)}
+      ${row("支出の合計", o=>o.expense, {b:1})}
+      ${sec("生産活動（工賃）")}
+      ${row("作業の売上", o=>o.wSales)}
+      ${row("工賃の支払額", o=>o.wage)}
+      ${row("平均工賃（1人あたり）", o=>o.avgWage)}
+      ${sec("損益・資金")}
+      ${row("月の損益", o=>o.profit, {b:1,color:1})}
+      ${row("累計損益", o=>o.cum, {color:1})}
+      ${row("給付費の入金（2か月遅れ）", o=>o.cashIn)}
+      ${row("借入の返済", o=>o.repay)}
+      ${row("月末の手元資金", o=>o.cash, {b:1,color:1})}
+      ${sec("人員配置のチェック")}
+      ${row("必要な職員（常勤換算）", o=>o.needStaff.toFixed(2))}
+      ${row("配置している職員（常勤換算）", o=>o.fte.toFixed(2))}
+      ${row("判定", o=>o.staffOK?"OK":"不足")}
+    </table>
+  </div></div>`;
+}
+function profitChart(r){
+  const M = r.months, W=960, H=260, L=60, R=10, T=16, B=34;
+  const vals = M.map(o=>o.profit);
+  const mx = Math.max(...vals, 0), mn = Math.min(...vals, 0);
+  const span = (mx-mn)||1, y = v => T+(mx-v)/span*(H-T-B), bw = (W-L-R)/36;
+  let g = "";
+  for (let k=0;k<=4;k++){ const v = mn+span*k/4; g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#e3eaee"/><text x="${L-6}" y="${y(v)+4}" font-size="11" text-anchor="end" fill="#5d6f7a">${man(v)}万</text>`; }
+  M.forEach((o,i)=>{ const x=L+i*bw+2, v=o.profit; g += `<rect x="${x}" width="${bw-4}" y="${Math.min(y(v),y(0))}" height="${Math.abs(y(v)-y(0))}" fill="${v<0?"#d9776f":"#4aa874"}"><title>${o.m}か月目 ${yen(v)}円</title></rect>`;
+    if (i%3===0) g += `<text x="${x+bw/2}" y="${H-14}" font-size="11" text-anchor="middle" fill="#5d6f7a">${o.m}</text>`; });
+  g += `<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="#22313a"/>`;
+  return `<div class="card"><h2>月ごとの損益（緑＝黒字・赤＝赤字）</h2><div class="body"><svg class="chart" viewBox="0 0 ${W} ${H}">${g}<text x="${W-R}" y="${H-2}" font-size="11" text-anchor="end" fill="#5d6f7a">開設からの月</text></svg></div></div>`;
+}
+function cashChart(r){
+  const M = r.months, W=960, H=260, L=64, R=10, T=16, B=34;
+  const pts = [{m:0,v:r.cash0}, ...M.map(o=>({m:o.m,v:o.cash}))];
+  const mx = Math.max(...pts.map(p=>p.v),0), mn = Math.min(...pts.map(p=>p.v),0);
+  const span=(mx-mn)||1, y=v=>T+(mx-v)/span*(H-T-B), x=m=>L+m*(W-L-R)/36;
+  let g="";
+  for (let k=0;k<=4;k++){ const v=mn+span*k/4; g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#e3eaee"/><text x="${L-6}" y="${y(v)+4}" font-size="11" text-anchor="end" fill="#5d6f7a">${man(v)}万</text>`; }
+  g += `<rect x="${L}" y="${y(0)}" width="${W-L-R}" height="${Math.max(0,y(mn)-y(0))}" fill="#fdecea"/>`;
+  g += `<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="#22313a"/>`;
+  g += `<polyline fill="none" stroke="#1f6fb2" stroke-width="2.5" points="${pts.map(p=>`${x(p.m)},${y(p.v)}`).join(" ")}"/>`;
+  pts.forEach(p=>{ if (p.m%3===0) g+=`<text x="${x(p.m)}" y="${H-14}" font-size="11" text-anchor="middle" fill="#5d6f7a">${p.m===0?"開設前":p.m}</text>`; });
+  const lo = pts.reduce((a,p)=>p.v<a.v?p:a);
+  g += `<circle cx="${x(lo.m)}" cy="${y(lo.v)}" r="5" fill="#c8372d"/><text x="${x(lo.m)}" y="${y(lo.v)-12}" font-size="12" text-anchor="middle" fill="#c8372d" font-weight="700">最低 ${man(lo.v)}万円</text>`;
+  return `<div class="card"><h2>手元のお金の動き（自己資金＋融資からスタート）</h2><div class="body"><svg class="chart" viewBox="0 0 ${W} ${H}">${g}</svg>
+  <div class="legend"><span><i style="background:#1f6fb2"></i>月末の手元資金</span><span><i style="background:#fdecea;border:1px solid #e6b3ae"></i>ここに入るとお金が足りない</span></div></div></div>`;
+}
+
+// ======================================================================
+// ページ：1か月の内訳
+// ======================================================================
+function pDetail(){
+  const r = simulate();
+  const o = r.months[detailM-1];
+  const c = r.c;
+  const tr = (a,b,cl="") => `<tr class="${cl}"><td>${a}</td><td class="n">${b}</td></tr>`;
+  const kas = o.kasan.filter(k=>k.units>0).map(k=>tr(`　${k.name}（${k.kb}）`, yen(k.units*c.tanka))).join("") || tr("　（取得している加算なし）","0");
+  return `
+  <div class="crumb">詳しく見る ＞ 1か月の内訳</div>
+  <h1>1か月の内訳</h1>
+  <div class="tools"><label style="align-self:center;font-weight:700">月を選ぶ</label>
+    <select data-detail>${r.months.map(x=>`<option value="${x.m}" ${x.m===detailM?"selected":""}>${x.m}か月目（${ym(x.m)}）</option>`).join("")}</select>
+    <span class="note" style="align-self:center">シナリオ：${S.scenario}</span></div>
+  <div class="kpis">
+    <div class="kpi"><div class="t">登録利用者</div><div class="v">${o.reg}人</div><div class="note">1日平均 ${o.daily.toFixed(1)}人／新規 ${o.newU}人</div></div>
+    <div class="kpi"><div class="t">収入</div><div class="v">${man(o.income)}万円</div></div>
+    <div class="kpi"><div class="t">支出</div><div class="v">${man(o.expense)}万円</div></div>
+    <div class="kpi"><div class="t">損益</div><div class="v ${cls(o.profit)}">${sgnMan(o.profit)}万円</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+  <div class="card"><h2>収入（円）</h2><div class="body"><table class="list">
+    ${tr(`基本報酬（${o.unitDay}単位×延べ${o.nobe.toFixed(1)}人日×${c.tanka}円）`, yen(o.yenKihon))}
+    ${tr("加算", yen(o.yenKasan),"b")}${kas}
+    ${tr(`処遇改善加算（${S.shogu}・${(c.shoguRate*100).toFixed(1)}%）`, yen(o.yenShogu))}
+    ${tr(`食事代（${o.meals.toFixed(1)}食×${S.mealFee}円）`, yen(o.mealFee))}
+    ${tr("<b>収入の合計</b>", `<b>${yen(o.income)}</b>`)}
+  </table>
+  <div class="note" style="margin-top:8px">基本報酬の単位は ${o.m<=c.minashi?`開設${c.minashi}か月目までの「工賃区分のみなし（1万円未満）」`:`みなし期間後の工賃区分「${esc(S.kubunAfter)}」`}${c.tokurei<1?"、新規指定の特例（×98.4%）を反映":""}。</div></div></div>
+  <div class="card"><h2>支出（円）</h2><div class="body"><table class="list">
+    ${tr("給与・賞与", yen(o.salary))}${tr("法定福利費", yen(o.fukuri))}${tr("処遇改善の職員への配分", yen(o.shoguPay))}
+    ${tr(`食材費・弁当代（${S.mealType}）`, yen(o.food))}
+    ${o.fixed.map(f=>tr(esc(f.name), yen(f.amount))).join("")}
+    ${tr("<b>支出の合計</b>", `<b>${yen(o.expense)}</b>`)}
+  </table></div></div>
+  </div>
+  <div class="card"><h2>生産活動と工賃（円）</h2><div class="body"><table class="list">
+    ${o.works.map(w=>tr(`${esc(w.name)}　売上`, yen(w.sales))).join("")}
+    ${tr("材料費など", yen(o.wCost))}${tr("工賃の支払額", yen(o.wage))}${tr("平均工賃（1人あたり）", yen(o.avgWage))}
+  </table></div></div>`;
+}
+
+// ======================================================================
+// ページ：設定
+// ======================================================================
+const num = (path, val, opt={}) => `<input type="number" data-path="${path}" value="${opt.pct?+(val*100).toFixed(4):val}" ${opt.pct?'data-pct="1"':""} step="${opt.step||"any"}" class="${opt.cls||""}">${opt.unit?`<span class="unit">${opt.unit}</span>`:""}`;
+const txt = (path, val, cl="w") => `<input type="text" data-path="${path}" value="${esc(val)}" class="${cl}">`;
+const sel = (path, val, options) => `<select data-path="${path}">${options.map(o=>{ const [v,l] = Array.isArray(o)?o:[o,o]; return `<option value="${esc(v)}" ${String(v)===String(val)?"selected":""}>${esc(l)}</option>`; }).join("")}</select>`;
+const fld = (label, input, note="") => `<tr><th>${label}</th><td>${input}${note?`<div class="note">${note}</div>`:""}</td></tr>`;
+const D = k => `<span data-d="${k}"></span>`;
+
+function pSettings(){
+  const tabs = [["basic","基本条件"],["users","利用者・送迎・食事"],["kasan","加算・減算"],["staff","職員"],["cost","経費"],["work","生産活動"],["fund","初期費用・資金"],["data","保存・読み込み"]];
+  return `
+  <div class="crumb">管理 ＞ 設定</div>
+  <h1>設定</h1>
+  <div class="bar" id="bar"></div>
+  <div class="tabs">${tabs.map(([k,l])=>`<button class="${k===setTab?"on":""}" data-tab="${k}">${l}</button>`).join("")}</div>
+  ${({basic:sBasic, users:sUsers, kasan:sKasan, staff:sStaff, cost:sCost, work:sWork, fund:sFund, data:sData})[setTab]()}`;
+}
+function sBasic(){
+  return `<div class="card"><h2>事業所の基本条件</h2><div class="body"><table class="form">
+    ${fld("地域区分（級地）", sel("chiiki", S.chiiki, MASTER.chiiki.map(c=>[c[0], `${c[0]}（${c[1]}円${c[2]?"・"+c[2]:""}）`])), "熊取町は6級地（2026年度まで）。1単位の単価："+D("tanka")+"円")}
+    ${fld("定員", num("teiin", S.teiin, {unit:"人", step:1}), "定員規模の区分："+D("kibo"))}
+    ${fld("報酬体系（基本報酬の種類）", sel("taikei", S.taikei, MASTER.taikei.map((t,i)=>[i,t.name])), "6:1など＝利用者何人に職員1人を置くか。職員を厚くするほど単価が高い")}
+    ${fld("開設予定月", `<input type="month" data-path="kaisetsu" value="${S.kaisetsu}">`, "工賃区分のみなし期間："+D("minashi")+"か月（4月開設が最短の12か月）")}
+    ${fld("みなし期間後の工賃区分（見込み）", sel("kubunAfter", S.kubunAfter, MASTER.kubun.map(k=>k[0])), "1年目の平均工賃（計算）："+D("wageY1")+"円 → 該当する区分："+D("wageKubun"))}
+    ${fld("新規指定の特例（基本報酬×98.4%）", sel("tokurei", S.tokurei, [[true,"適用する"],[false,"適用しない"]]), "2026年6月以降の新規指定に掛かる。今の掛け率："+D("tokureiRate"))}
+    ${fld("1か月の開所日数", num("days", S.days, {unit:"日", step:1}))}
+    ${fld("常勤の1か月の所定労働時間", num("jokinHours", S.jokinHours, {unit:"時間", step:1}), "パートの常勤換算（＝常勤何人分か）に使う")}
+    ${fld("法定福利費の率（社会保険料の会社負担）", num("fukuri", S.fukuri, {pct:1, unit:"%"}))}
+  </table></div></div>`;
+}
+function sUsers(){
+  const sc = ["悲観","標準","楽観"];
+  const r = (lab, key, opt) => `<tr><th>${lab}</th>${sc.map(n=>`<td>${num(`scen.${n}.${key}`, S.scen[n][key], opt)}</td>`).join("")}</tr>`;
+  return `<div class="card"><h2>利用者の見込み（シナリオ）</h2><div class="body">
+    <table class="form" style="margin-bottom:10px">${fld("使うシナリオ", sel("scenario", S.scenario, sc), "ヘッダーと全ページに反映されます")}</table>
+    <table class="form"><tr><th>項目</th>${sc.map(n=>`<th style="width:auto">${n}</th>`).join("")}</tr>
+      ${r("開設月の登録利用者数", "start", {unit:"人", step:1, cls:"s"})}
+      ${r("毎月増える登録利用者数", "inc", {unit:"人", step:0.5, cls:"s"})}
+      ${r("登録利用者数の上限", "max", {unit:"人", step:1, cls:"s"})}
+      ${r("利用率（登録者のうち毎日来る割合）", "rate", {pct:1, unit:"%", cls:"s"})}
+    </table>
+    <div class="note" style="margin-top:6px">1日の利用者は定員を超えないように計算します。</div></div></div>
+  <div class="card"><h2>送迎・食事</h2><div class="body"><table class="form">
+    ${fld("送迎を使う人の割合", num("sogeiRate", S.sogeiRate, {pct:1, unit:"%"}), "送迎回数＝延べ利用日数×割合×2（往復）")}
+    ${fld("昼食を食べる人の割合", num("mealRate", S.mealRate, {pct:1, unit:"%"}))}
+    ${fld("食事提供体制加算の対象（低所得）の割合", num("lowIncome", S.lowIncome, {pct:1, unit:"%"}), "生活保護・住民税非課税などの人")}
+    ${fld("食事の方式", sel("mealType", S.mealType, ["弁当仕入れ","手作り"]), "弁当仕入れは食事提供体制加算の対象外。手作りにすると加算が付き、職員に調理員が1人入る")}
+    ${fld("弁当の仕入れ単価", num("bento", S.bento, {unit:"円/食", step:10}))}
+    ${fld("手作りの食材費", num("tezukuri", S.tezukuri, {unit:"円/食", step:10}))}
+    ${fld("利用者から受け取る食事代", num("mealFee", S.mealFee, {unit:"円/食", step:10}), "金額は要確認")}
+    ${fld("欠席のうち欠席時対応加算を取れる割合", num("absentRate", S.absentRate, {pct:1, unit:"%"}))}
+  </table></div></div>`;
+}
+function sKasan(){
+  const rows = KASAN_NAMES.map(name=>{
+    const opts = ["取得しない", ...MASTER.kasan.filter(k=>k.name===name).map(k=>k.kb)];
+    const first = MASTER.kasan.find(k=>k.name===name);
+    const cur = kasanSel(name);
+    const manual = first.target==="manual" || first.target==="nobeX";
+    return `<tr><td><b>${esc(name)}</b><div class="note">${esc(first.req)}</div></td>
+      <td>${sel(`kasan.${name}.kb`, cur.kb, opts)}</td>
+      <td class="n">${D("ku:"+name)}</td><td>${first.per}</td><td>${TARGET_LABEL[first.target]}</td>
+      <td>${manual?num(`kasan.${name}.qty`, cur.qty, {cls:"s"}):"自動"}</td></tr>`;
+  }).join("");
+  const gen = GEN_NAMES.map(name=>{
+    const opts = ["該当しない", ...MASTER.gensan.filter(g=>g[0]===name).map(g=>g[1])];
+    const g = MASTER.gensan.find(x=>x[0]===name);
+    return `<tr><td><b>${esc(name)}</b><div class="note">${esc(g[3])}</div></td><td>${sel(`gensan.${name}`, S.gensan[name]||"該当しない", opts)}</td></tr>`;
+  }).join("");
+  return `<div class="card"><h2>処遇改善加算（＝職員の賃上げ用の加算）</h2><div class="body"><table class="form">
+    ${fld("取得区分", sel("shogu", S.shogu, MASTER.shogu.map(s=>[s[0], s[0]+(s[1]?`（${(s[1]*100).toFixed(1)}%）`:"")])), esc((MASTER.shogu.find(s=>s[0]===S.shogu)||[])[2]||""))}
+    ${fld("職員への配分割合", num("shoguHaibun", S.shoguHaibun, {pct:1, unit:"%"}), "加算額は全額を賃金改善に使うルール。支出にも同額を計上")}
+  </table></div></div>
+  <div class="card"><h2>加算の取得状況</h2><div class="body scroll"><table class="list">
+    <tr><th>加算名・主な要件</th><th>取得区分</th><th>単位数</th><th>算定単位</th><th>数える対象</th><th>手入力の数量（月）</th></tr>${rows}</table>
+    <div class="note" style="margin-top:6px">実績が必要な加算（就労移行支援体制・重度者支援体制・目標工賃達成）は1年目は取れない前提で「取得しない」にしています。</div></div></div>
+  <div class="card"><h2>減算（＝基準を満たさないと報酬が減る仕組み。通常はすべて「該当しない」）</h2><div class="body"><table class="list">
+    <tr><th>減算名・主な要件</th><th>区分</th></tr>${gen}</table>
+    <div class="note" style="margin-top:6px">基本報酬に掛かる率の合計：${D("gensanRate")}</div></div></div>`;
+}
+function sStaff(){
+  const rows = S.staff.map((s,i)=>`<tr>
+    <td>${txt(`staff.${i}.name`, s.name)}</td>
+    <td>${sel(`staff.${i}.type`, s.type, ["常勤","非常勤"])}</td>
+    <td>${s.auto?`<span class="tag">自動 ${D("sc:"+i)}人</span>`:num(`staff.${i}.count`, s.count, {cls:"s", step:1})}</td>
+    <td>${num(`staff.${i}.pay`, s.pay, {step:10})}<div class="note">${s.type==="常勤"?"月給":"時給"}</div></td>
+    <td>${s.type==="常勤"?"—":num(`staff.${i}.hours`, s.hours, {cls:"s", step:1})}</td>
+    <td>${num(`staff.${i}.bonus`, s.bonus, {cls:"s", step:0.5})}</td>
+    <td>${sel(`staff.${i}.inBase`, s.inBase, [[true,"はい"],[false,"いいえ"]])}</td>
+    <td>${num(`staff.${i}.start`, s.start, {cls:"s", step:1})}</td>
+    <td class="n">${D("st:"+i)}</td><td class="n">${D("sf:"+i)}</td>
+    <td>${s.auto?"":`<button class="btn del" data-act="del" data-list="staff" data-i="${i}">削除</button>`}</td></tr>`).join("");
+  return `<div class="card"><h2>職員体制と人件費</h2><div class="body scroll"><table class="list">
+    <tr><th>職種</th><th>雇用形態</th><th>人数</th><th>月給／時給</th><th>月の勤務時間</th><th>賞与（年何か月分）</th><th>配置基準に数える</th><th>勤務開始（何か月目）</th><th>人件費（月・社保込み）</th><th>常勤換算</th><th></th></tr>
+    ${rows}
+    <tr><td colspan="8"><b>合計</b></td><td class="n"><b>${D("staffTotal")}</b></td><td class="n"><b>${D("fteTotal")}</b></td><td></td></tr></table>
+    <div class="tools" style="margin-top:10px"><button class="btn sub" data-act="add" data-list="staff">＋ 職員を追加</button></div>
+    <div class="note">配置基準に数える＝職業指導員・生活支援員として人員配置（${D("ratio")}:1）に数えるか。管理者・サービス管理責任者は数えません。開設直後に必要な人数：${D("needStaff")}人分（定員×90%÷${D("ratio")}）→ ${D("staffJudge")}</div>
+  </div></div>`;
+}
+function listCard(title, list, cols){
+  const rows = S[list].map((r,i)=>`<tr>${cols.map(c=>`<td>${c.kind==="num"?num(`${list}.${i}.${c.key}`, r[c.key], c.opt||{}):txt(`${list}.${i}.${c.key}`, r[c.key])}</td>`).join("")}
+    <td><button class="btn del" data-act="del" data-list="${list}" data-i="${i}">削除</button></td></tr>`).join("");
+  return `<div class="card"><h2>${title}</h2><div class="body scroll"><table class="list">
+    <tr>${cols.map(c=>`<th>${c.label}</th>`).join("")}<th></th></tr>${rows}</table>
+    <div class="tools" style="margin-top:10px"><button class="btn sub" data-act="add" data-list="${list}">＋ 行を追加</button></div>`;
+}
+function sCost(){
+  return listCard("毎月の固定費・経費", "fixed", [{key:"name",label:"項目"},{key:"amount",label:"月額（円）",kind:"num",opt:{step:1000}},{key:"note",label:"メモ"}])
+    + `<div class="note">合計：${D("fixedSum")}円／月。家賃は「家賃」という名前の行を開設前の費用の計算にも使います。</div></div></div>`;
+}
+function sWork(){
+  return listCard("生産活動（作業）", "work", [{key:"name",label:"作業名"},{key:"sales",label:"1人1日あたりの売上（円）",kind:"num",opt:{step:10}},{key:"part",label:"作業に参加する割合",kind:"num",opt:{pct:1,unit:"%",cls:"s"}},{key:"cost",label:"経費率（材料費など）",kind:"num",opt:{pct:1,unit:"%",cls:"s"}}])
+    + `<table class="form" style="margin-top:10px">${fld("生産活動の利益のうち工賃に回す割合", num("wageShare", S.wageShare, {pct:1, unit:"%"}), "工賃は生産活動の収入から払うのが原則（国の報酬からは払えない）")}</table></div></div>`;
+}
+function sFund(){
+  const items = S.init.items.map((it,i)=>`<tr><td>${txt(`init.items.${i}.name`, it.name)}</td>
+    <td>${it.auto?`<span class="tag">自動</span> ${D("ii:"+i)}`:num(`init.items.${i}.amount`, it.amount, {step:10000})}</td>
+    <td>${txt(`init.items.${i}.note`, it.note)}</td>
+    <td>${it.auto?"":`<button class="btn del" data-act="del" data-list="init.items" data-i="${i}">削除</button>`}</td></tr>`).join("");
+  return `<div class="card"><h2>初期費用（開設前に出ていくお金）</h2><div class="body scroll">
+    <table class="form" style="margin-bottom:10px">
+      ${fld("準備期間（開設前に家賃・人件費が出る月数）", num("init.prep", S.init.prep, {unit:"か月", step:1}))}
+      ${fld("物件取得費は家賃の何か月分か", num("init.deposit", S.init.deposit, {unit:"か月", step:1}))}
+    </table>
+    <table class="list"><tr><th>項目</th><th>金額（円）</th><th>メモ</th><th></th></tr>${items}
+      <tr><td><b>合計</b></td><td class="n"><b>${D("initTotal")}</b></td><td colspan="2"></td></tr></table>
+    <div class="tools" style="margin-top:10px"><button class="btn sub" data-act="add" data-list="init.items">＋ 行を追加</button></div></div></div>
+  <div class="card"><h2>資金の準備</h2><div class="body"><table class="form">
+    ${fld("自己資金", num("fund.self", S.fund.self, {unit:"円", step:100000}))}
+    ${fld("融資額", num("fund.loan", S.fund.loan, {unit:"円", step:100000}), "日本政策金融公庫などを想定")}
+    ${fld("年利", num("fund.rate", S.fund.rate, {pct:1, unit:"%"}))}
+    ${fld("返済期間（据置期間を含む）", num("fund.term", S.fund.term, {unit:"か月", step:1}))}
+    ${fld("据置期間（＝利息だけ払う期間）", num("fund.grace", S.fund.grace, {unit:"か月", step:1}), "据置後の毎月の返済額："+D("pmt")+"円")}
+    ${fld("給付費の入金までの遅れ", num("fund.lag", S.fund.lag, {unit:"か月", step:1}), "国保連（＝国民健康保険団体連合会）経由で、サービス提供月の翌々月に入金")}
+  </table></div></div>`;
+}
+function sData(){
+  return `<div class="card"><h2>保存・読み込み</h2><div class="body">
+    <p class="note" style="margin-top:0">設定は自動で<b>このパソコンのこのブラウザの中だけ</b>に保存されます。別のパソコンやスマホで同じ設定を使うときは、「設定を書き出す」で保存したファイルを、相手側で「設定を読み込む」から開いてください。</p>
+    <div class="tools">
+      <button class="btn" data-act="export">設定とやることリストを書き出す（ファイルに保存）</button>
+      <label class="btn sub" style="display:inline-block">設定を読み込む<input type="file" accept=".json" data-import style="display:none"></label>
+      <button class="btn sub" style="color:var(--red);border-color:#e0a8a3" data-act="reset">すべて初期値に戻す</button>
+    </div>
+    <p class="note">初期値は2026年10月23日時点の仮の値です（収支計画スプシと同じ）。報酬単価は2027年4月の報酬改定で変わる見込みのため、改定後はファイル内の「報酬マスタ」を差し替えます。</p>
+  </div></div>`;
+}
+
+// 設定ページで、入力を変えたときに再描画せずに更新する数字
+function updateDerived(){
+  const c = context();
+  const r = simulate();
+  const st = steady(S.scen[S.scenario].max, false);
+  const be = breakEven(false);
+  const bar = document.getElementById("bar");
+  if (bar) bar.innerHTML = `<span>安定期（登録${S.scen[S.scenario].max}人）の毎月の残り<b class="${cls(st.profit)}">${sgnMan(st.profit)}万円</b></span>
+    <span>黒字になる登録者数<b>${be===null?"—":be+"人"}</b></span>
+    <span>1年目の損益<b class="${cls(r.yr("profit",0))}">${sgnMan(r.yr("profit",0))}万円</b></span>
+    <span>手元資金の最低額<b class="${cls(r.minCash)}">${sgnMan(r.minCash)}万円</b></span>`;
+  const y1 = r.months.slice(0,12).reduce((a,o)=>a+o.avgWage,0)/12;
+  const kub = MASTER.kubun.find(k=>y1>=k[1]);
+  const need0 = S.teiin*MASTER.shinsetsu/c.tk.ratio;
+  const fte = c.staff.filter(s=>s.inBase).reduce((a,s)=>a+s.fte,0);
+  const map = {
+    tanka:c.tanka.toFixed(2), kibo:MASTER.teiin[c.kibo], minashi:c.minashi, wageY1:yen(y1), wageKubun:kub?kub[0]:"",
+    tokureiRate:(c.tokurei*100).toFixed(1)+"%", gensanRate:(c.gensan*100).toFixed(1)+"%", pmt:yen(c.pmt),
+    staffTotal:yen(c.staffTotal), fteTotal:c.staff.reduce((a,s)=>a+s.fte,0).toFixed(2), ratio:c.tk.ratio,
+    needStaff:need0.toFixed(2), staffJudge: fte>=need0-1e-9?`<span class="tag ok">OK（配置 ${fte.toFixed(2)}人分）</span>`:`<span class="tag ng">不足（配置 ${fte.toFixed(2)}人分）</span>`,
+    initTotal:yen(c.initTotal), fixedSum:yen(S.fixed.reduce((a,f)=>a+(+f.amount||0),0)),
+  };
+  c.kas.forEach(k=>map["ku:"+k.name]=k.unit||"—");
+  c.staff.forEach((s,i)=>{ map["st:"+i]=yen(s.total); map["sf:"+i]=s.fte.toFixed(2); map["sc:"+i]=s.count; });
+  c.initItems.forEach((it,i)=>map["ii:"+i]=yen(it.amount));
+  document.querySelectorAll("[data-d]").forEach(el=>{ const v = map[el.dataset.d]; el.innerHTML = v===undefined ? "" : v; });
+  renderNav();
+}
+
+// ======================================================================
+// ページ：報酬マスタ
+// ======================================================================
+function pMaster(){
+  const kh = MASTER.teiin.map(t=>`<th>${t}</th>`).join("");
+  const base = MASTER.taikei.map((t,i)=>{
+    const rows = MASTER.base[i];
+    return rows.map((r,j)=>`<tr><td>${j===0?esc(t.name):""}</td><td>${t.ev==="一律"?"－（工賃区分なし）":esc(MASTER.kubun[j][0])}</td>${r.map(v=>`<td class="n">${v}</td>`).join("")}</tr>`).join("");
+  }).join("");
+  const kas = MASTER.kasan.map(k=>`<tr><td>${esc(k.name)}</td><td>${esc(k.kb)}</td>${k.units.map(v=>`<td class="n">${v??""}</td>`).join("")}<td>${k.per}</td><td>${esc(k.limit)}</td><td style="white-space:normal;min-width:280px">${esc(k.req)}${k.excl?"（98.4%特例の対象外になる）":""}</td></tr>`).join("");
+  return `
+  <div class="crumb">管理 ＞ 報酬マスタ</div>
+  <h1>報酬マスタ（就労継続支援B型・2026年10月時点）</h1>
+  <div class="warn">令和6年度報酬改定に令和8年度改定（2026年6月施行）を反映した単位数です。2027年4月の報酬改定で変わる見込みです。出典：厚生労働省 障害福祉サービス費等単位数表・留意事項通知（令和8年改正）。単位（＝報酬の点数）×1単位の単価（熊取町は10.34円）＝円。</div>
+  <div class="card"><h2>基本報酬（1日あたりの単位数）</h2><div class="body scroll"><table class="grid"><tr><th>報酬体系</th><th>平均工賃月額の区分</th>${kh}</tr>${base}</table>
+    <div class="note" style="margin-top:6px">新規指定の事業所は、この単位×98.4%（1日あたりで四捨五入）。開設1年目（年度途中の開設は翌年度末まで）は工賃区分を「八（1万円未満）」とみなします。</div></div></div>
+  <div class="card"><h2>加算一覧（単位数）</h2><div class="body scroll"><table class="grid"><tr><th>加算名</th><th>区分</th>${kh}<th>算定単位</th><th>上限</th><th>主な要件</th></tr>${kas}</table></div></div>
+  <div class="card"><h2>処遇改善加算の加算率（2026年6月以降）</h2><div class="body"><table class="grid"><tr><th>区分</th><th>加算率</th><th>主な要件</th></tr>
+    ${MASTER.shogu.slice(1).map(s=>`<tr><td>${s[0]}</td><td class="n">${(s[1]*100).toFixed(1)}%</td><td style="white-space:normal">${esc(s[2])}</td></tr>`).join("")}</table></div></div>
+  <div class="card"><h2>減算</h2><div class="body"><table class="grid"><tr><th>減算名</th><th>区分</th><th>掛け率</th><th>主な要件</th></tr>
+    ${MASTER.gensan.map(g=>`<tr><td>${g[0]}</td><td>${g[1]}</td><td class="n">${Math.round(g[2]*100)}%</td><td style="white-space:normal">${esc(g[3])}</td></tr>`).join("")}</table></div></div>
+  <div class="card"><h2>地域区分と1単位の単価（就労継続支援）</h2><div class="body"><table class="grid"><tr><th>級地</th><th>単価（円）</th><th>地域の例</th></tr>
+    ${MASTER.chiiki.map(c=>`<tr><td>${c[0]}</td><td class="n">${c[1].toFixed(2)}</td><td>${c[2]}</td></tr>`).join("")}</table></div></div>`;
+}
+
+// ======================================================================
+// ページ：やることリスト（開設準備〜運営のタスク）
+// when＝開設月から何か月前（マイナス）／後（プラス）
+// ======================================================================
+const WHO = ["母","父","母・父","専門家・業者に頼む","息子"];
+const PHASES = ["1. 計画・資金","2. 法人・物件","3. 人・設備・作業","4. 指定申請（泉佐野市）","5. 利用者集め","6. 開設後の運営"];
+const STATUS = ["未着手","進行中","完了"];
+const TASK_DEFAULTS = [
+  // 1. 計画・資金
+  [0,"収支計画をつくる（このシミュレーター）","息子",-12,"","仮の値を順番に本当の数字に置き換えていく","進行中"],
+  [0,"どんな事業所にするか決める","母",-12,"","作業内容・来てほしい利用者像・営業時間・送迎する範囲"],
+  [0,"指定の窓口（泉佐野市）に早めに相談する","母",-10,"泉佐野市の障害福祉の担当窓口","正式な事前協議の前に、指定の流れ・必要書類・物件の条件を聞く。設計案mdの「確認すること」もここでまとめて聞く"],
+  [0,"熊取町の障害福祉の窓口にあいさつ","母",-10,"熊取町役場","町内で通う場所を探している人がいるか、相談支援事業所の情報を聞く"],
+  [0,"自己資金の額を決める","母・父",-10,"","シミュレーターの「開設に必要なお金」を見て決める"],
+  [0,"使える補助金・助成金を調べる","息子",-9,"","自治体の開設補助を受けると、基本報酬の98.4%特例の対象外になる場合がある（要確認）"],
+  [0,"融資を申し込む","母",-8,"日本政策金融公庫など／税理士","創業計画書（＝事業の計画と資金の使い道をまとめた書類）が必要"],
+  // 2. 法人・物件
+  [1,"法人の形を決める","母",-9,"","株式会社・合同会社・一般社団法人・NPO法人。B型は法人でないと指定を受けられない"],
+  [1,"法人を設立する","専門家・業者に頼む",-8,"司法書士・行政書士","定款（＝会社のルールブック）の目的に「障害福祉サービス事業」を入れる"],
+  [1,"税理士を決める","専門家・業者に頼む",-8,"税理士","会計・決算。作業の売上（工賃の元）は事業のお金と分けて管理する必要がある"],
+  [1,"物件を探す","母・父",-8,"不動産会社","広さ・駐車場（送迎車2台）・作業スペース・トイレ・段差"],
+  [1,"契約前に物件の条件を確認する","専門家・業者に頼む",-7,"建築士・泉佐野市・消防署","建物の用途変更が要るか、消防設備が何か要るか。図面を持って相談してから契約する"],
+  [1,"消防署に事前相談する","母",-7,"泉州南消防組合（要確認）","必要な消防設備（自動火災報知設備・誘導灯・消火器など）と費用の目安"],
+  [1,"物件を契約する","母",-6,"",""],
+  [1,"内装工事","専門家・業者に頼む",-5,"内装業者","作業室・相談室・多目的室・トイレ・洗面など、指定の設備基準に合わせる"],
+  [1,"作業用の電源・照明","父",-5,"",""],
+  [1,"消防設備の設置と検査","専門家・業者に頼む",-4,"消防設備業者・消防署",""],
+  // 3. 人・設備・作業
+  [2,"お母様のサビ管の要件を確認","母",-10,"","実務経験・研修の修了証をそろえておく（要件は充足済み）","完了"],
+  [2,"お父様の働き方を決める","父",-8,"泉佐野市（指定の窓口）","本業と兼業しながら常勤として認められるか確認"],
+  [2,"受託作業Aの委託契約書・単価表をつくる","母",-4,"","単価の根拠を書面で残す"],
+  [2,"受託作業Bの扱いを確認する","父",-6,"大阪府・熊取町の担当","材料の扱い（許可の要否）を確認する"],
+  [2,"職員を採用する（職業指導員など）","母",-4,"ハローワーク・求人サイト","介護福祉士などの資格者がいると加算が取れる"],
+  [2,"就業規則・雇用契約・給与規程をつくる","専門家・業者に頼む",-4,"社会保険労務士","昇給の仕組みは処遇改善加算（＝職員の賃上げ用の加算）の要件になる"],
+  [2,"食事の方式を決める","母",-4,"弁当業者","弁当仕入れか手作りか。手作りなら加算が付くが調理する人が要る"],
+  [2,"送迎車を手配する","父",-3,"リース会社・保険会社","2台が目安。任意保険も"],
+  [2,"作業機器・備品をそろえる","母・父",-3,"","裁断機・プリンター・机・椅子・パソコン・複合機"],
+  // 4. 指定申請
+  [3,"運営規程・重要事項説明書・利用契約書をつくる","専門家・業者に頼む",-4,"行政書士（母と一緒に）","事業所のルールと、利用者に説明する書類"],
+  [3,"指針・マニュアルをつくる","母",-3,"","虐待防止・身体拘束をしないための指針・業務継続計画（BCP＝災害や感染症のときの計画）・感染症対策。ないと報酬が減る"],
+  [3,"事前協議を受ける（受付最終日：開設3か月前の月の末日）","母",-3,"泉佐野市・行政書士","4月1日開設なら2027年1月末ごろ（令和9年度の日程は未公表。令和8年度は1月30日）。それまでに物件・法人・職員体制のめどが必要（要確認）"],
+  [3,"申請を予約する（締切：開設2か月前の月の末日）","母",-2,"泉佐野市","4月1日開設なら2027年2月末ごろ（令和8年度は2月27日）"],
+  [3,"指定申請の書類を出す（締切：開設前月の10日ごろ）","専門家・業者に頼む",-1,"行政書士","4月1日開設なら2027年3月10日ごろ（令和8年度は3月10日）"],
+  [3,"指定の窓口の現地確認・面談を受ける","母",-1,"",""],
+  [3,"加算の届出と処遇改善加算の計画書を出す","母",-1,"行政書士・社労士","送迎加算・欠席時対応加算などの体制届"],
+  [3,"請求ソフトを契約する","母",-1,"","国保連（＝国民健康保険団体連合会。報酬の請求先）への請求に使う"],
+  [3,"損害賠償保険に入る","母",-1,"保険会社",""],
+  // 5. 利用者集め
+  [4,"パンフレット・チラシをつくる","息子",-5,"",""],
+  [4,"ホームページ・Googleマップに登録","息子",-4,"","Googleビジネスプロフィール（＝地図検索に事業所を載せる無料サービス）"],
+  [4,"相談支援事業所にあいさつ回り","母",-4,"","利用者にサービスを紹介する窓口。ここからの紹介がいちばん多い"],
+  [4,"関係先にあいさつ回り","母・父",-3,"","特別支援学校・就労移行支援・精神科の病院・ハローワーク・地域活動支援センター"],
+  [4,"見学会・体験利用を受け付ける","母",-2,"",""],
+  [4,"利用希望者に受給者証の申請を案内する","母",-2,"利用者の住む市町村","受給者証（＝サービスを使うための許可証）。発行まで時間がかかるので早めに（期間は要確認）"],
+  [4,"契約・聞き取り・個別支援計画をつくる","母",-1,"","聞き取り＝アセスメント。サビ管の仕事"],
+  // 6. 開設後の運営
+  [5,"毎月の報酬の請求","母",1,"国保連","毎月1〜10日に前月分を請求。入金は2か月後"],
+  [5,"送迎・作業の指導・毎日の支援記録","父",1,"",""],
+  [5,"工賃の支払いと、作業の売上の会計","母",1,"税理士","工賃は作業の売上から払う"],
+  [5,"委員会・研修を定期的に開く","母",3,"","虐待防止・身体拘束をしないための委員会と研修"],
+  [5,"情報公表の報告","母",3,"","国のサイトに事業所の情報を載せる。しないと報酬が減る"],
+  [5,"個別支援計画の見直し（6か月ごと）","母",6,"",""],
+  [5,"平均工賃を計算して、2年目の工賃区分を届け出る","母",11,"泉佐野市（指定の窓口）","これで2年目の基本報酬が決まる"],
+  [5,"行政のチェック（運営指導）に備えて書類を整える","母",12,"","勤務表・支援記録・個別支援計画・請求の根拠"],
+  [5,"処遇改善加算の実績報告","専門家・業者に頼む",16,"社労士","年度が終わったあとに報告（時期は要確認）"],
+].map((t,i)=>({id:i+1, phase:t[0], name:t[1], who:t[2], when:t[3], ext:t[4], note:t[5], status:t[6]||"未着手", memo:""}));
+
+const TKEY = "b-plan-tasks-v2";
+function loadT(){ try { const t = localStorage.getItem(TKEY); if (t) return JSON.parse(t); } catch(e) {} return clone(TASK_DEFAULTS); }
+function saveT(){ try { localStorage.setItem(TKEY, JSON.stringify(T)); } catch(e) {} }
+let T = loadT();
+let tWho = "すべて", tHideDone = false;
+
+function whenLabel(w){
+  const label = w<0 ? `${-w}か月前` : w===0 ? "開設月" : `開設${w}か月目`;
+  return `${label}（${ym(w<0 ? w+1 : w)}）`;
+}
+function isLate(t){
+  if (t.status==="完了") return false;
+  const [y,mo] = ym(t.when<0 ? t.when+1 : t.when).split("/").map(Number);
+  const now = new Date();
+  return y*12+mo < now.getFullYear()*12+now.getMonth()+1;
+}
+function pTasks(){
+  const stat = WHO.map(w=>{ const list = T.filter(t=>t.who===w); const done = list.filter(t=>t.status==="完了").length; return {w, done, all:list.length}; });
+  const late = T.filter(isLate).length;
+  const show = T.filter(t=>(tWho==="すべて" || t.who===tWho) && !(tHideDone && t.status==="完了"));
+  const body = PHASES.map((ph,pi)=>{
+    const rows = show.filter(t=>+t.phase===pi).sort((a,b)=>a.when-b.when);
+    if (!rows.length) return "";
+    return `<div class="card"><h2>${ph}</h2><div class="body scroll"><table class="list tasks">
+      <tr><th style="width:96px">状況</th><th>やること</th><th style="width:150px">担当</th><th style="width:190px">時期</th><th style="width:220px">頼む先・相談先／メモ</th><th style="width:56px"></th></tr>
+      ${rows.map(t=>{ const i = T.indexOf(t); return `<tr class="st-${t.status} ${isLate(t)?"late":""}">
+        <td>${tsel(i,"status",t.status,STATUS)}</td>
+        <td><input type="text" class="w tname" data-tpath="${i}.name" value="${esc(t.name)}">${t.note?`<div class="note">${esc(t.note)}</div>`:""}</td>
+        <td>${tsel(i,"who",t.who,WHO)}</td>
+        <td><input type="number" class="s" step="1" data-tpath="${i}.when" value="${t.when}"><div class="note">${whenLabel(t.when)}${isLate(t)?' <span class="tag ng">遅れ</span>':""}</div></td>
+        <td><div class="note" style="margin:0 0 3px">${esc(t.ext)}</div><input type="text" class="w" data-tpath="${i}.memo" value="${esc(t.memo)}" placeholder="メモ"></td>
+        <td><button class="btn del" data-tact="del" data-i="${i}">削除</button></td></tr>`; }).join("")}
+    </table>
+    <div class="tools" style="margin:10px 0 0"><button class="btn sub" data-tact="add" data-phase="${pi}">＋ この段階にやることを追加</button></div></div></div>`;
+  }).join("");
+  return `
+  <div class="crumb">開設準備 ＞ やることリスト</div>
+  <h1>開設までと開設後のやることリスト</h1>
+  <div class="note" style="margin-bottom:12px">時期は「開設月の何か月前か」で入れています（開設予定 ${ym(1)}。設定ページで変えると日付も変わります）。マイナス＝開設前、プラス＝開設後。</div>
+  ${late?`<div class="warn">開設を${ym(1)}にすると、時期を過ぎている「やること」が <b>${late}件</b> あります。開設月を後ろにずらすか、急いで進める必要があります。</div>`:""}
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+    ${stat.map(s=>`<div class="kpi"><div class="t">${s.w}</div><div class="v">${s.done} / ${s.all}</div>
+      <div class="gauge" style="height:8px;margin:6px 0 0"><div class="fill" style="width:${s.all?s.done/s.all*100:0}%"></div></div></div>`).join("")}
+  </div>
+  <div class="tools">
+    <span style="align-self:center;font-weight:700">担当で絞り込む</span>
+    <div class="seg">${["すべて",...WHO].map(w=>`<button class="${w===tWho?"on":""}" data-twho="${w}">${w}</button>`).join("")}</div>
+    <label style="align-self:center;margin-left:8px"><input type="checkbox" data-thide ${tHideDone?"checked":""}> 完了を隠す</label>
+    <button class="btn sub" style="margin-left:auto" onclick="window.print()">印刷する</button>
+    <button class="btn sub" style="color:var(--red);border-color:#e0a8a3" data-tact="reset">初期のリストに戻す</button>
+  </div>
+  ${body || `<div class="card"><div class="body">表示する「やること」がありません。</div></div>`}`;
+}
+const tsel = (i, key, val, options) => `<select data-tpath="${i}.${key}">${options.map(o=>`<option ${o===val?"selected":""}>${o}</option>`).join("")}</select>`;
+
+document.addEventListener("click", e=>{
+  const w = e.target.closest("[data-twho]"); if (w){ tWho = w.dataset.twho; render(); return; }
+  const b = e.target.closest("[data-tact]"); if (!b) return;
+  if (b.dataset.tact==="del"){ if (!confirm("この「やること」を削除しますか？")) return; T.splice(+b.dataset.i, 1); }
+  if (b.dataset.tact==="add") T.push({id:Date.now(), phase:+b.dataset.phase, name:"", who:"母", when:0, ext:"", note:"", status:"未着手", memo:""});
+  if (b.dataset.tact==="reset"){ if (!confirm("やることリストを初期の状態に戻します（状況・メモは消えます）。よろしいですか？")) return; T = clone(TASK_DEFAULTS); }
+  saveT(); render();
+});
+document.addEventListener("input", e=>{
+  const el = e.target;
+  if (!el.dataset.tpath || el.tagName==="SELECT") return;
+  const [i, key] = el.dataset.tpath.split(".");
+  T[+i][key] = key==="when" ? (el.value==="" ? 0 : Math.round(+el.value)) : el.value;
+  saveT();
+});
+document.addEventListener("change", e=>{
+  const el = e.target;
+  if (el.matches("[data-thide]")){ tHideDone = el.checked; render(); return; }
+  if (!el.dataset.tpath) return;
+  const [i, key] = el.dataset.tpath.split(".");
+  if (el.tagName==="SELECT"){ T[+i][key] = el.value; saveT(); render(); }
+  else if (key==="when"){ saveT(); render(); }
+});
+
+// ======================================================================
+// 操作
+// ======================================================================
+function setPath(path, v){
+  const ks = path.split(".");
+  let o = S;
+  for (let i=0;i<ks.length-1;i++){ if (o[ks[i]]===undefined) o[ks[i]] = {}; o = o[ks[i]]; }
+  o[ks[ks.length-1]] = v;
+}
+const STRUCT = /^(staff\.\d+\.type|taikei|mealType|shogu|scenario|kasan\..*\.kb)$/; // 入力欄の形が変わるもの
+document.addEventListener("click", e=>{
+  const a = e.target.closest("[data-page]"); if (a){ go(a.dataset.page); return; }
+  const t = e.target.closest("[data-tab]"); if (t){ setTab = t.dataset.tab; render(); return; }
+  const y = e.target.closest("[data-y1]"); if (y){ homeY1 = y.dataset.y1==="1"; render(); return; }
+  const h = e.target.closest("[data-home]"); if (h){ applyHome(h.dataset.home, h.dataset.val); save(); render(); return; }
+  const s = e.target.closest("[data-scen]"); if (s){ S.scenario = s.dataset.scen; homeReg = null; save(); render(); return; }
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act;
+  if (act==="add" || act==="del"){
+    const list = b.dataset.list.split(".").reduce((o,k)=>o[k], S);
+    if (act==="del"){ if (!confirm("この行を削除しますか？")) return; list.splice(+b.dataset.i, 1); }
+    else if (b.dataset.list==="staff") list.push({name:"",type:"常勤",count:1,pay:200000,hours:0,bonus:0,inBase:true,start:1,note:""});
+    else if (b.dataset.list==="work") list.push({name:"",sales:0,part:0,cost:0});
+    else list.push({name:"",amount:0,note:""});
+    save(); render();
+  }
+  if (act==="reset"){ if (!confirm("すべての設定を初期値に戻します。よろしいですか？")) return; S = clone(DEFAULTS); homeReg = null; save(); render(); }
+  if (act==="export"){
+    const blob = new Blob([JSON.stringify({...S, _tasks:T}, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const d = new Date();
+    const link = document.createElement("a");
+    link.href = url; link.download = `B型収支_設定_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}.json`;
+    link.click(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+});
+document.addEventListener("input", e=>{
+  const el = e.target;
+  if (el.matches("[data-homereg]")){ homeReg = +el.value; render(); const r = document.querySelector("[data-homereg]"); if (r) r.focus(); return; }
+  if (!el.dataset.path || el.tagName==="SELECT") return;
+  if (el.type==="number"){ if (el.value==="") return; let v = +el.value; if (el.dataset.pct) v = v/100; setPath(el.dataset.path, v); }
+  else setPath(el.dataset.path, el.value);
+  save(); updateDerived();
+});
+document.addEventListener("change", e=>{
+  const el = e.target;
+  if (el.matches("[data-detail]")){ detailM = +el.value; render(); return; }
+  if (el.matches("[data-import]")){
+    const file = el.files[0]; if (!file) return;
+    file.text().then(t=>{ try { const obj = JSON.parse(t); if (obj._tasks){ T = obj._tasks; saveT(); } delete obj._tasks; S = merge(clone(DEFAULTS), obj); homeReg = null; save(); render(); alert("設定を読み込みました"); } catch(err){ alert("読み込めませんでした（ファイルの形式が違います）"); } });
+    return;
+  }
+  if (el.tagName!=="SELECT" || !el.dataset.path) return;
+  let v = el.value;
+  if (v==="true") v = true; else if (v==="false") v = false;
+  else if (el.dataset.path==="taikei") v = +v;
+  setPath(el.dataset.path, v);
+  save();
+  if (STRUCT.test(el.dataset.path)) render(); else updateDerived();
+});
+window.addEventListener("hashchange", ()=>{ const p = location.hash.slice(1); if (p!==page){ page = p; render(); } });
+render();
+</script>
+</body>
+</html>
