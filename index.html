@@ -288,9 +288,9 @@ const DEFAULTS = {
          {name:"税理士・社労士報酬",amount:40000,note:"仮"},{name:"栄養士の献立関与（委託）",amount:10000,note:"食事提供体制加算の要件"},
          {name:"修繕・雑費",amount:20000,note:"仮"}],
   staff:[
-    {name:"管理者兼サービス管理責任者（母）",type:"常勤",count:1,pay:0,hours:0,bonus:0,inBase:false,start:1,note:"役員報酬は当面0円（2026-10-23決定）"},
-    {name:"職業指導員",type:"常勤",count:1,pay:230000,hours:0,bonus:2,inBase:true,start:1,note:""},
-    {name:"生活支援員（父）",type:"常勤",count:1,pay:230000,hours:0,bonus:2,inBase:true,start:1,note:"給与は仮（要確認）"},
+    {name:"サービス管理責任者兼職業指導員（母）",type:"常勤",count:1,pay:0,hours:0,bonus:0,inBase:false,share:0.5,start:1,note:"役員報酬は当面0円（2026-10-23決定）。職業指導員の分は基準を超えた加配扱い（市の手引き）のため配置に数えない。7.5:1に入れてよいかは要確認"},
+    {name:"職業指導員（雇用・常勤専従）",type:"常勤",count:1,pay:230000,hours:0,bonus:2,inBase:true,start:1,note:"父母が兼務のため、常勤専従の支援員がもう1人必須（市の手引き）"},
+    {name:"管理者兼生活支援員（父）",type:"常勤",count:1,pay:230000,hours:0,bonus:2,inBase:true,share:0.625,start:1,note:"1日8時間のうち生活支援員5時間（勤務表に合わせて変える）。給与は仮（要確認）"},
     {name:"生活支援員（パート）",type:"非常勤",count:1,pay:1150,hours:120,bonus:0,inBase:true,start:1,note:""},
     {name:"目標工賃達成指導員",type:"常勤",count:0,pay:230000,hours:0,bonus:2,inBase:false,start:1,auto:"kotin",note:"加算を取ると自動で1人"},
     {name:"調理員（手作りの場合）",type:"非常勤",count:0,pay:1100,hours:80,bonus:0,inBase:false,start:1,auto:"meal",note:"食事を手作りにすると自動で1人"},
@@ -325,8 +325,18 @@ function merge(base, add){
   }
   return base;
 }
+function migrate(o){
+  // 2026-10-31：父＝管理者兼生活支援員、母＝サビ管兼職業指導員 に体制変更
+  const st = o.staff||[], i = st.findIndex(x=>x.name==="管理者兼サービス管理責任者（母）"), j = st.findIndex(x=>x.name==="生活支援員（父）"), k = st.findIndex(x=>x.name==="職業指導員");
+  if (i>=0 && j>=0){
+    Object.assign(st[i], {name:"サービス管理責任者兼職業指導員（母）", inBase:false, share:0.5, note:DEFAULTS.staff[0].note});
+    Object.assign(st[j], {name:"管理者兼生活支援員（父）", inBase:true, share:0.625, note:DEFAULTS.staff[2].note});
+    if (k>=0) Object.assign(st[k], {name:"職業指導員（雇用・常勤専従）", note:DEFAULTS.staff[1].note});
+  }
+  return o;
+}
 function load(){
-  try { const t = localStorage.getItem(KEY); if (t) return merge(clone(DEFAULTS), JSON.parse(t)); } catch(e) {}
+  try { const t = localStorage.getItem(KEY); if (t) return migrate(merge(clone(DEFAULTS), JSON.parse(t))); } catch(e) {}
   return clone(DEFAULTS);
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
@@ -365,7 +375,7 @@ function context(){
     const per = s.type==="常勤" ? +s.pay : s.pay*s.hours;
     const monthly = count*per*(1+(+s.bonus||0)/12);
     const fuk = monthly*S.fukuri;
-    const fte = s.type==="常勤" ? count : count*s.hours/S.jokinHours;
+    const fte = (s.type==="常勤" ? count : count*s.hours/S.jokinHours) * (s.share ?? 1);   // share：兼務の人が支援員として働く割合
     return {...s, count, per, monthly, fuk, total:monthly+fuk, fte};
   });
   const mealCost = S.mealType==="手作り" ? S.tezukuri : S.bento;
@@ -922,7 +932,7 @@ function sStaff(){
     <td>${num(`staff.${i}.pay`, s.pay, {step:10})}<div class="note">${s.type==="常勤"?"月給":"時給"}</div></td>
     <td>${s.type==="常勤"?"—":num(`staff.${i}.hours`, s.hours, {cls:"s", step:1})}</td>
     <td>${num(`staff.${i}.bonus`, s.bonus, {cls:"s", step:0.5})}</td>
-    <td>${sel(`staff.${i}.inBase`, s.inBase, [[true,"はい"],[false,"いいえ"]])}</td>
+    <td>${sel(`staff.${i}.inBase`, s.inBase, [[true,"はい"],[false,"いいえ"]])}${s.type==="常勤"?`<div class="note">支援員の割合 ${num(`staff.${i}.share`, s.share ?? 1, {pct:1, unit:"%", cls:"s", step:5})}</div>`:""}</td>
     <td>${num(`staff.${i}.start`, s.start, {cls:"s", step:1})}</td>
     <td class="n">${D("st:"+i)}</td><td class="n">${D("sf:"+i)}</td>
     <td>${s.auto?"":`<button class="btn del" data-act="del" data-list="staff" data-i="${i}">削除</button>`}</td></tr>`).join("");
@@ -931,7 +941,7 @@ function sStaff(){
     ${rows}
     <tr><td colspan="8"><b>合計</b></td><td class="n"><b>${D("staffTotal")}</b></td><td class="n"><b>${D("fteTotal")}</b></td><td></td></tr></table>
     <div class="tools" style="margin-top:10px"><button class="btn sub" data-act="add" data-list="staff">＋ 職員を追加</button></div>
-    <div class="note">配置基準に数える＝職業指導員・生活支援員として人員配置（${D("ratio")}:1）に数えるか。管理者・サービス管理責任者は数えません。開設直後に必要な人数：${D("needStaff")}人分（定員×90%÷${D("ratio")}）→ ${D("staffJudge")}</div>
+    <div class="note">配置基準に数える＝職業指導員・生活支援員として人員配置（${D("ratio")}:1）に数えるか。管理者・サービス管理責任者は数えません。兼務の常勤は「支援員の割合」に、1日のうち支援員として働く時間の割合を入れます（例：8時間中5時間なら62.5%）。開設直後に必要な人数：${D("needStaff")}人分（定員×90%÷${D("ratio")}）→ ${D("staffJudge")}</div>
   </div></div>`;
 }
 function listCard(title, list, cols){
@@ -1232,7 +1242,7 @@ document.addEventListener("change", e=>{
   if (el.matches("[data-detail]")){ detailM = +el.value; render(); return; }
   if (el.matches("[data-import]")){
     const file = el.files[0]; if (!file) return;
-    file.text().then(t=>{ try { const obj = JSON.parse(t); if (obj._tasks){ T = obj._tasks; saveT(); } if (obj._shift){ SH = Object.assign(shDefault(), obj._shift); saveSH(); } delete obj._tasks; delete obj._shift; S = merge(clone(DEFAULTS), obj); homeReg = null; save(); render(); alert("設定を読み込みました"); } catch(err){ alert("読み込めませんでした（ファイルの形式が違います）"); } });
+    file.text().then(t=>{ try { const obj = JSON.parse(t); if (obj._tasks){ T = obj._tasks; saveT(); } if (obj._shift){ SH = Object.assign(shDefault(), obj._shift); saveSH(); } delete obj._tasks; delete obj._shift; S = migrate(merge(clone(DEFAULTS), obj)); homeReg = null; save(); render(); alert("設定を読み込みました"); } catch(err){ alert("読み込めませんでした（ファイルの形式が違います）"); } });
     return;
   }
   if (el.tagName!=="SELECT" || !el.dataset.path) return;
@@ -1286,6 +1296,10 @@ const DOC_CHECK = [
   "添付書類一覧（Excel）の中身：定款・写真・建築や消防の書類・協力医療機関などが要るか",
   "熊取町の障害福祉の担当課にも事前に相談が必要か",
   "物件：用途変更（建築確認）が要るか、消防署への事前相談",
+  "人員基準：月（4週）の常勤換算で判断し、日ごとの配置は問わないという理解でよいか",
+  "母がサビ管と職業指導員を兼ねる場合、職業指導員の分は「基準を超えて置いている職員」扱いになるか。報酬区分（7.5:1）の人数に入れてよいか",
+  "兼務は2職種までという決まりの根拠（どの通知・手引きか）",
+  "勤務表の兼務の書き方：1日の時間を職種ごとに按分する（例：管理者3時間＋生活支援員5時間）のか、管理者は8時間と書いて別職種の時間を足すのか",
 ];
 function pDocs(){
   const whoTag = w => `<span class="tag ${w==="母"?"ok":""}">${esc(w)}</span>`;
@@ -1350,9 +1364,11 @@ const SHKEY = "b-plan-shift-v1";
 const SH_JOBS = ["管理者","サービス管理責任者","職業指導員","生活支援員","目標工賃達成指導員","その他"];
 const SH_FORMS = [["A","A 常勤・専従"],["B","B 常勤・兼務"],["C","C 非常勤・専従"],["D","D 非常勤・兼務"]];
 const SH_DIRECT = ["職業指導員","生活支援員"];
+// 2026-10-31 決定の体制：父＝管理者兼生活支援員、母＝サービス管理責任者兼職業指導員
+const SH_ROWS0 = [["管理者","B","父：生活支援員と兼務"],["生活支援員","B","父：管理者と兼務"],["サービス管理責任者","B","母：職業指導員と兼務"],["職業指導員","B","母：サービス管理責任者と兼務"],["職業指導員","A","雇用（常勤・専従）"],["生活支援員","C","パート"]];
 function shDefault(){
   return {y:2027, m:4, period:"4週", kind:"予定", gaisyu:"無", week:40, month:160, users:+(S.teiin*0.9).toFixed(1), svc:6, off:{},
-    rows:[["管理者","B"],["サービス管理責任者","B"],["職業指導員","A"],["生活支援員","A"],["生活支援員","C"]].map(([job,form])=>({job, form, qual:"", name:"", kenmu:"", h:{}}))};
+    rows:SH_ROWS0.map(([job,form,kenmu])=>({job, form, qual:"", name:"", kenmu, h:{}}))};
 }
 function loadSH(){ try { const t = localStorage.getItem(SHKEY); if (t) return Object.assign(shDefault(), JSON.parse(t)); } catch(e) {} return shDefault(); }
 function saveSH(){ try { localStorage.setItem(SHKEY, JSON.stringify(SH)); } catch(e) {} }
@@ -1363,7 +1379,10 @@ const shWd = d => new Date(SH.y, SH.m-1, d).getDay();
 function shOff(d){ const o = (SH.off[shMK()]||{})[d]; return o===undefined ? (shWd(d)===0 || shWd(d)===6) : o; }
 const shJoukin = r => r.form==="A" || r.form==="B";
 // 「休」は常勤の休暇。市の記入方法では、常勤の休暇は勤務したものとして数える（1日＝週の所定時間÷5）
-function shHour(r, d){ const v = ((r.h||{})[shMK()]||{})[d]; if (v==="休") return shJoukin(r) ? SH.week/5 : 0; return +v || 0; }
+function shHour(r, d){ const mk = shMK(), v = ((r.h||{})[mk]||{})[d];
+  if (v==="休"){ if (!shJoukin(r)) return 0; const nm = r.name.trim();
+    const same = nm ? SH.rows.filter(x=>x.name.trim()===nm && ((x.h||{})[mk]||{})[d]==="休").length : 1; return SH.week/5/(same||1); }
+  return +v || 0; }
 const fl1 = x => Math.floor(x*10+1e-9)/10, ce1 = x => Math.ceil(x*10-1e-9)/10;
 
 function shCalc(){
@@ -1394,8 +1413,31 @@ function shCalc(){
   if (c.tk.ratio < 10) ck.push([`報酬区分「${c.tk.name.split("（")[0]}」の配置：常勤換算 ${needSel.toFixed(1)}人以上（利用者${users}人÷${c.tk.ratio}）`, direct>=needSel, `今の配置 ${direct.toFixed(1)}人。足りないと基本報酬の区分を下げる必要があります`]);
   if (cnt("目標工賃達成指導員")) ck.push(["目標工賃達成指導員配置加算：指導員が常勤換算1人以上・職業指導員＋生活支援員が6:1以上・指導員を含め5:1以上",
     kotin>=1 && direct>=ce1(users/6) && fl1(direct+kotin)>=ce1(users/5), `指導員 ${kotin.toFixed(1)}人／2職種 ${direct.toFixed(1)}人（必要 ${ce1(users/6).toFixed(1)}）／合計 ${fl1(direct+kotin).toFixed(1)}人（必要 ${ce1(users/5).toFixed(1)}）`]);
+  // 兼務：同じ氏名の行をまとめ、1日の時間を職種ごとに按分しているか（合計が1日の所定時間以内）、常勤・兼務なら合計が所定時間に届くか
+  const dayMax = (+SH.week||0)/5, people = {};
+  rows.forEach(x=>{ const nm = x.r.name.trim(); if (nm) (people[nm] = people[nm]||[]).push(x); });
+  const kenmu = Object.entries(people).filter(([,xs])=>xs.length>=2);
+  if (kenmu.length){
+    const over = [];
+    kenmu.forEach(([nm,xs])=>{ for (let d=1; d<=n; d++){ const h = xs.reduce((a,x)=>a+shHour(x.r,d),0); if (h>dayMax+1e-9) over.push(`${nm} ${d}日（${fmtH(h)}時間）`); } });
+    ck.push([`兼務の人：1日の時間を職種ごとに分け、合計が1日 ${fmtH(dayMax)}時間以内（例：管理者3時間＋生活支援員5時間）`, !over.length, over.length ? `超えている日：${over.slice(0,8).join("・")}${over.length>8?" ほか":""}` : ""]);
+    const short = kenmu.filter(([,xs])=>xs.some(x=>x.r.form==="B")).map(([nm,xs])=>[nm, xs.reduce((a,x)=>a+x.total,0)]).filter(([,t])=>t<cap-1e-9);
+    const many = kenmu.filter(([,xs])=>new Set(xs.map(x=>x.r.job)).size>=3).map(([nm])=>nm);
+    ck.push(["兼務は2職種まで", !many.length, many.length ? `3職種以上：${many.join("・")}（出典未確認。実務経験による運用ルール）` : "出典未確認。実務経験による運用ルール"]);
+    // 市の手引き：サビ管が兼務できるのは「管理者」か「人員配置基準を超える人数を配置しているサービス提供職員」だけ
+    const sabi = kenmu.filter(([,xs])=>xs.some(x=>x.r.job==="サービス管理責任者") && xs.some(x=>SH_DIRECT.includes(x.r.job))).map(([nm])=>nm);
+    if (sabi.length){
+      const rest = rows.filter(x=>!sabi.includes(x.r.name.trim()));
+      const restD = fl1(rest.filter(x=>SH_DIRECT.includes(x.r.job)).reduce((a,x)=>a+x.fte,0));
+      const has = job => rest.some(x=>x.r.job===job && x.on);
+      ck.push([`サービス管理責任者が職業指導員・生活支援員を兼ねる場合：その人を除いても基準（常勤換算 ${need10.toFixed(1)}人・職業指導員1人・生活支援員1人）を満たす`,
+        restD>=need10 && has("職業指導員") && has("生活支援員"),
+        `除いた配置 ${restD.toFixed(1)}人／職業指導員 ${has("職業指導員")?"あり":"なし"}／生活支援員 ${has("生活支援員")?"あり":"なし"}。市の手引き：サビ管が兼務できるのは管理者か「基準を超えて置いている職員」だけ。報酬区分（7.5:1など）の計算にこの人を入れてよいかは要確認`]);
+    }
+    ck.push([`常勤・兼務（B）の人：職種をまとめた合計が常勤の所定時間（${cap.toFixed(0)}時間）に届いている`, !short.length, short.length ? short.map(([nm,t])=>`${nm} ${fmtH(t)}時間`).join("・")+"（足りないと常勤として扱えません）" : ""]);
+  }
   ck.push(["営業日に、職業指導員・生活支援員が誰もいない日がない", !noStaffDays.length, noStaffDays.length ? `いない日：${noStaffDays.map(d=>`${d}日`).join("・")}（計算上の基準とは別。運営上の確認）` : ""]);
-  return {n, wk, cap, rows, direct, ck, noStaffDays};
+  return {n, wk, cap, rows, direct, ck, noStaffDays, people};
 }
 
 // 入力のたびに書き換える部分（再描画するとiPadで入力中の欄が閉じるため）
@@ -1412,6 +1454,7 @@ function shOut(){
     out["ddir"+d] = shOff(d) ? "" : fmtH(o.rows.filter(x=>SH_DIRECT.includes(x.r.job)).reduce((a,x)=>a+shHour(x.r,d), 0));
   }
   out.cap = `${SH.period==="4週" ? "4週" : "1か月"}の上限 ${o.cap.toFixed(0)}時間（常勤の所定時間${o.wk!==+SH.week?"。週32時間未満のため32時間で計算":""}）`;
+  out.persons = Object.entries(o.people).filter(([,xs])=>xs.length>=2).map(([nm,xs])=>`<li><b>${esc(nm)}</b>：${xs.map(x=>`${esc(x.r.job)} ${fmtH(x.total)||0}時間`).join("＋")}＝<b>${fmtH(xs.reduce((a,x)=>a+x.total,0))||0}時間</b></li>`).join("") || "<li>兼務の人はいません（同じ氏名の行が2つ以上あると兼務として集計します）</li>";
   const ng = o.ck.filter(c=>!c[1]).length;
   out.verdict = ng ? `<span class="tag ng">${ng}項目 未達</span>` : `<span class="tag ok">すべて満たしています</span>`;
   out.checks = o.ck.map(c=>`<li><span class="tag ${c[1]?"ok":"ng"}">${c[1]?"OK":"未達"}</span> ${esc(c[0])}${c[2]?`<div class="note">${esc(c[2])}</div>`:""}</li>`).join("");
@@ -1452,8 +1495,9 @@ function pShift(){
   return `
   <div class="crumb">開設準備 ＞ 勤務表</div>
   <h1>勤務表（勤務形態一覧表）</h1>
-  <div class="warn"><b>人員基準は「毎日」ではなく「1か月（4週または暦月）」の勤務表で判定します。</b>1か月分の勤務時間から週平均を出し、常勤換算（＝勤務時間を常勤1人分に直した人数）で必要人数を満たしているかを見ます。必要人数の元になる利用者数も、その日の出席者数ではなく「前年度の1日平均」（新規開設は定員×90%の推定数）です。<br>
-  ただし、営業日に職業指導員・生活支援員が誰もいない日があると、運営上は問題になります。下のチェックでは、その日も表示します（日ごとの配置の扱いは<span class="tag ng">要確認</span>：市の広域福祉課に確認）。</div>
+  <div class="warn"><b>指定基準の確認は、4週または1か月分の勤務表から出す常勤換算（＝勤務時間を常勤1人分に直した人数）で行います。</b>必要人数の元になる利用者数も、その日の出席者数ではなく「前年度の1日平均」（新規開設は推定数）です。<br>
+  出典：泉佐野市「参考資料4 勤務形態一覧表（就労継続支援A型・B型）」の記入方法（期間は「4週」か「暦月」、「指定基準の確認に際しては、4週分の入力で差し支えありません」）、泉佐野市「指定申請の手引き（日中活動系）」の常勤換算の計算方法。<br>
+  <span class="tag ng">要確認</span> 「日ごとに基準を下回っても問題ない」と書いた文書は未確認です。営業日に職業指導員・生活支援員が誰もいない日は、下のチェックで表示します。市の広域福祉課に確認すること（「必要書類」ページの「市に電話で確認すること」に記載）。</div>
   <div class="note" style="margin-bottom:14px">泉佐野市の「参考資料4 勤務形態一覧表（就労継続支援A型・B型）」と同じ項目です。市の記入方法では、必要な項目がそろっていれば事業所のシフト表で代わりにしてよいとされています。入力した氏名・時間は<b>この端末の中だけ</b>に保存され、公開ページには載りません。</div>
 
   <div class="card"><h2>1. 表の条件</h2><div class="body scroll"><table class="form">
@@ -1466,13 +1510,14 @@ function pShift(){
 
   <div class="card"><h2>2. 職員の登録</h2><div class="body scroll"><table class="list">
     <tr><th>No.</th><th>職種</th><th>勤務形態</th><th>資格</th><th>氏名</th><th>兼務状況</th><th></th></tr>${staff}</table>
-    <div class="tools" style="margin-top:10px"><button class="btn sub" data-shadd>＋ 行を追加</button></div>
-    <div class="note">兼務（＝1人で2つの職種をする）の人は、職種ごとに行を分け、勤務時間も分けて入れます（例：お母様は「管理者」と「サービス管理責任者」の2行）。「一括入力」で営業日すべてに同じ時間を入れられます。</div>
+    <div class="tools" style="margin-top:10px"><button class="btn sub" data-shadd>＋ 行を追加</button> <button class="btn sub" data-shrows0>職員の行を初期の体制に戻す</button></div>
+    <div class="note">兼務（＝1人で2つの職種をする）の人は、職種ごとに行を分け、<b>同じ氏名</b>にして、1日の勤務時間を職種ごとに按分（＝割り振り）して入れます。例：1日8時間なら「管理者3時間＋生活支援員5時間」。2つの行の合計が常勤の所定時間（4週160時間など）に届けば常勤として数えます。書き方の正式な扱いは<span class="tag ng">要確認</span>（市に確認）。「一括入力」で営業日すべてに同じ時間を入れられます。</div>
   </div></div>
 
   <div class="card"><h2>3. 勤務時間（${SH.y}年${SH.m}月・${SH.period}・${SH.kind}）</h2><div class="body">
     <div class="note" style="margin-bottom:8px">マスに勤務時間を入れます（例：8、6.5）。常勤の休暇は「休」と入れると勤務したものとして数えます（市の記入方法）。日付を押すと営業日／休業日を切り替えます。${S_("cap")}</div>
     <div class="scroll"><table class="shgrid"><tr>${head}</tr>${grid}<tr>${foot1}<td colspan="3"></td></tr><tr>${foot2}<td colspan="3"></td></tr><tr>${foot3}<td colspan="3"></td></tr></table></div>
+    <div class="note" style="margin-top:10px"><b>兼務の人の合計</b><ul class="shck" style="margin-top:4px">${S_("persons")}</ul></div>
   </div></div>
 
   <div class="card"><h2>4. 人員基準のチェック ${S_("verdict")}</h2><div class="body">
@@ -1494,6 +1539,7 @@ document.addEventListener("change", e=>{
 document.addEventListener("click", e=>{
   const off = e.target.closest("[data-shoff]");
   if (off){ const d = +off.dataset.shoff, mk = shMK(); SH.off[mk] = SH.off[mk]||{}; SH.off[mk][d] = !shOff(d); saveSH(); render(); return; }
+  if (e.target.closest("[data-shrows0]")){ if (!confirm("職員の行を初期の体制（父：管理者兼生活支援員、母：サビ管兼職業指導員、雇用の職業指導員、パートの生活支援員）に戻します。入力した氏名・勤務時間は消えます。よろしいですか？")) return; SH.rows = shDefault().rows; saveSH(); render(); return; }
   const add = e.target.closest("[data-shadd]");
   if (add){ SH.rows.push({job:"生活支援員", form:"C", qual:"", name:"", kenmu:"", h:{}}); saveSH(); render(); return; }
   const del = e.target.closest("[data-shdel]");
